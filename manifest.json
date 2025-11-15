@@ -2,6 +2,25 @@
   "short_name": "NeuroVibe",
   "name": "NeuroVibe: Brain Training Game",
   "description": "An interactive chat-based game designed to train memory and cognitive skills through word challenges, story comprehension, and association tests, powered by the Gemini API.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "ru",
+  "dir": "ltr",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait-primary",
+  "theme_color": "#6d28d9",
+  "background_color": "#f9fafb",
+  "categories": [
+    "games",
+    "education",
+    "health"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon.svg",
@@ -12,16 +31,68 @@
     {
       "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
-  "theme_color": "#6d28d9",
-  "background_color": "#f9fafb"
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-mobile-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "NeuroVibe game mode selection"
+    },
+    {
+      "src": "/screenshots/screenshot-mobile-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "NeuroVibe gameplay"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Игра 'Слова'",
+      "short_name": "Слова",
+      "description": "Начать игру на запоминание слов",
+      "url": "/?mode=words",
+      "icons": [
+        {
+          "src": "/icons/shortcut-words.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Игра 'История'",
+      "short_name": "История",
+      "description": "Начать игру на понимание истории",
+      "url": "/?mode=story",
+      "icons": [
+        {
+          "src": "/icons/shortcut-story.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Игра 'Ассоциации'",
+      "short_name": "Ассоциации",
+      "description": "Начать игру на ассоциации",
+      "url": "/?mode=associations",
+      "icons": [
+        {
+          "src": "/icons/shortcut-associations.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
 }

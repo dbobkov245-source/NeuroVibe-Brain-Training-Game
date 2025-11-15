@@ -108,7 +108,7 @@ export default function App() {
     }
   };
 
-  const handleModeSelect = (mode: GameMode) => {
+  const handleModeSelect = useCallback((mode: GameMode) => {
     setCurrentMode(mode);
     setGamesPlayed(prev => prev + 1);
     let hiddenPrompt = '';
@@ -118,7 +118,21 @@ export default function App() {
       case 'associations': hiddenPrompt = 'Начни режим Ассоциации'; break;
     }
     sendMessage(hiddenPrompt, true);
-  };
+  }, [chatHistory]); // Dependency on chatHistory ensures sendMessage has the latest state
+
+  // Handle URL query params for shortcuts
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode') as GameMode;
+    if (mode && ['words', 'story', 'associations'].includes(mode)) {
+      // Check if a game is already in progress to avoid restarting
+      if (chatHistory.length === 0) {
+         handleModeSelect(mode);
+         // Clean up URL to prevent re-triggering on refresh
+         window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [handleModeSelect, chatHistory.length]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
