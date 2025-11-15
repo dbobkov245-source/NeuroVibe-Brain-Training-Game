@@ -10,14 +10,13 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      // This error is critical and should be logged on the server.
-      console.error('GEMINI_API_KEY is not set in environment variables.');
-      return res.status(500).json({ error: 'API key is not configured on the server.' });
-    }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error('GEMINI_API_KEY is not set in environment variables.');
+    return res.status(500).json({ error: 'API key is not configured on the server.' });
+  }
 
+  try {
     const { history, systemInstruction } = req.body as { history: ChatMessage[], systemInstruction: { text: string } };
 
     if (!history || !systemInstruction) {
