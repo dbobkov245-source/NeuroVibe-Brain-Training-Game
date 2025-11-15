@@ -32,11 +32,16 @@ export async function generateJsonResponse(history: ChatMessage[], systemInstruc
       }),
     });
 
-    // Try to parse the body regardless of response.ok to get the error message from the server
-    const responseBody = await response.json();
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (e) {
+      // If server returns non-JSON error (e.g. gateway error), create a custom error.
+      throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`);
+    }
 
     if (!response.ok) {
-      // Use the 'error' field from the server's JSON response if it exists
+      // Use the 'error' field from the server's JSON response if it exists, otherwise statusText.
       const errorMessage = responseBody?.error || response.statusText;
       throw new Error(`Ошибка сервера-посредника: ${errorMessage}`);
     }

@@ -7,9 +7,11 @@ export default async function handler(
   res: VercelResponse,
 ) {
   // Ensure the API key exists before any other logic
-  const apiKey = process.env.GEMINI_API_KEY;
+  // FIX: Use process.env.API_KEY as per the guidelines.
+  const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    console.error('GEMINI_API_KEY is not set in environment variables.');
+    // FIX: Updated error message to reflect the correct environment variable.
+    console.error('API_KEY is not set in environment variables.');
     return res.status(500).json({ error: 'Ключ API не настроен на сервере.' });
   }
 

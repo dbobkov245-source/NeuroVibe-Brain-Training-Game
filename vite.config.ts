@@ -26,7 +26,7 @@ export default defineConfig({
         theme_color: '#6d28d9',
         background_color: '#f9fafb',
         display: 'standalone',
-        display_override: ["standalone", "minimal-ui"],
+        display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
         scope: '/',
         start_url: '/',
         orientation: 'portrait-primary',
@@ -35,12 +35,14 @@ export default defineConfig({
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: '/icon.svg',
@@ -54,13 +56,15 @@ export default defineConfig({
             src: '/screenshots/screenshot-mobile-1.png',
             sizes: '1080x1920',
             type: 'image/png',
-            form_factor: 'narrow'
+            form_factor: 'narrow',
+            label: 'Game chat interface on mobile'
           },
           {
             src: '/screenshots/screenshot-desktop-1.png',
             sizes: '1920x1080',
             type: 'image/png',
-            form_factor: 'wide'
+            form_factor: 'wide',
+            label: 'Game mode selection on desktop'
           }
         ],
         shortcuts: [
@@ -84,6 +88,26 @@ export default defineConfig({
             description: "Начать новую игру на ассоциативное мышление",
             url: "/?mode=associations",
             icons: [{ "src": "/icon.svg", "sizes": "any" }]
+          }
+        ],
+        launch_handler: {
+          client_mode: 'focus-existing'
+        },
+        edge_side_panel: {
+// FIX: Corrected syntax for object property
+          preferred_width: 480
+        },
+        related_applications: [
+          // TODO: Замените на ваши реальные ID
+          {
+            "platform": "play",
+            "url": "https://play.google.com/store/apps/details?id=com.example.neurovibe",
+            "id": "com.example.neurovibe"
+          },
+          // TODO: Замените на ваш реальный URL
+          {
+            "platform": "itunes",
+            "url": "https://itunes.apple.com/app/neurovibe/id123456789"
           }
         ]
       },

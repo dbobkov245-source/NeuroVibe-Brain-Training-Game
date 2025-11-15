@@ -65,43 +65,52 @@ export default function App() {
 
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
     
-    // Use a function for setState to get the most up-to-date history
-    const updatedHistory = [...chatHistory, userMessage];
-    
-    if (!isHiddenPrompt) {
-      setChatHistory(updatedHistory);
-    }
+    setChatHistory(prevHistory => {
+        const apiHistory = [...prevHistory, userMessage];
 
-    try {
-        const modelResponse = await generateJsonResponse(updatedHistory, SYSTEM_INSTRUCTION);
-
-        const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
-        setChatHistory(prev => [...prev, modelMessage]);
+        (async () => {
+            try {
+                const modelResponse = await generateJsonResponse(apiHistory, SYSTEM_INSTRUCTION);
+                const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
+                setChatHistory(prev => [...prev, modelMessage]);
+                
+                if (modelResponse.xp_gained > 0) {
+                    setXp(prevXp => {
+                        const newXp = prevXp + modelResponse.xp_gained;
+                        checkAndUnlockAchievements({
+                            xp: newXp,
+                            gamesPlayed,
+                            lastModelResponse: modelResponse,
+                            currentGameMode: currentMode
+                        });
+                        return newXp;
+                    });
+                } else {
+                    setXp(prevXp => {
+                       checkAndUnlockAchievements({
+                          xp: prevXp,
+                          gamesPlayed,
+                          lastModelResponse: modelResponse,
+                          currentGameMode: currentMode,
+                       });
+                       return prevXp;
+                    });
+                }
+            } catch (error) {
+                const errorText = error instanceof Error ? error.message : String(error);
+                const errorMessage: ChatMessage = {
+                    role: 'model',
+                    parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
+                };
+                setChatHistory(prev => [...prev, errorMessage]);
+            } finally {
+                setIsLoading(false);
+            }
+        })();
         
-        const newXp = xp + modelResponse.xp_gained;
-        if (modelResponse.xp_gained > 0) {
-            setXp(newXp);
-        }
-        
-        const turnContext: AchievementCheckContext = {
-            xp: newXp,
-            gamesPlayed,
-            lastModelResponse: modelResponse,
-            currentGameMode: currentMode
-        };
-        checkAndUnlockAchievements(turnContext);
-
-    } catch (error) {
-        const errorText = error instanceof Error ? error.message : String(error);
-        const errorMessage: ChatMessage = {
-            role: 'model',
-            parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
-        };
-        setChatHistory(prev => [...prev, errorMessage]);
-    } finally {
-        setIsLoading(false);
-    }
-  }, [chatHistory, checkAndUnlockAchievements, currentMode, gamesPlayed, xp]);
+        return isHiddenPrompt ? prevHistory : apiHistory;
+    });
+  }, [checkAndUnlockAchievements, gamesPlayed, currentMode]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +166,7 @@ export default function App() {
             <h1 className="text-2xl font-bold text-gray-800">NeuroVibe</h1>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setShowAchievementsPanel(true)} className="text-gray-500 hover:text-violet-600 transition-colors">
+            <button onClick={() => setShowAchievementsPanel(true)} className="text-gray-500 hover:text-violet-600 transition-colors" aria-label="Показать достижения">
               <Trophy className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-2 bg-green-100 text-green-800 font-bold rounded-full px-4 py-1.5 shadow-sm transition-all duration-300 hover:shadow-md">
@@ -193,7 +202,7 @@ export default function App() {
           })}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="p-3 rounded-2xl shadow-md bg-white text-gray-800 rounded-bl-lg border border-gray-100">
+              <div className="p-3 rounded-2xl shadow-md bg-white text-gray-800 rounded-bl-lg border border-gray-100" aria-label="Загрузка">
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
             </div>
@@ -233,11 +242,13 @@ export default function App() {
                 placeholder="Ваш ответ..."
                 disabled={isLoading}
                 className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
+                aria-label="Поле для ввода ответа"
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
                 className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none"
+                aria-label={isLoading ? "Отправка..." : "Отправить"}
               >
                 {isLoading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
