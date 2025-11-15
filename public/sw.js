@@ -4,8 +4,9 @@ const urlsToCacheOnInstall = [
   '/index.html',
   '/manifest.json',
   '/icon.svg',
-  '/icon-192.png',
-  '/icon-512.png'
+  // Removed icon-192.png and icon-512.png as they might not exist in the public folder,
+  // causing the service worker installation to fail. The browser will still fetch them 
+  // when needed based on the manifest file.
 ];
 
 self.addEventListener('install', event => {
