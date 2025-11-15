@@ -16,7 +16,7 @@ export default defineConfig({
             handler: 'NetworkOnly'
           }
         ],
-        globPatterns: ['**/*.{js,css,html,ico,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,svg,png}']
       },
       includeAssets: ['favicon.ico', 'icon.svg'],
       manifest: {
@@ -33,10 +33,34 @@ export default defineConfig({
         lang: 'ru',
         icons: [
           {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
             src: '/icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: '/screenshots/screenshot-mobile-1.png',
+            sizes: '1080x1920',
+            type: 'image/png',
+            form_factor: 'narrow'
+          },
+          {
+            src: '/screenshots/screenshot-desktop-1.png',
+            sizes: '1920x1080',
+            type: 'image/png',
+            form_factor: 'wide'
           }
         ],
         shortcuts: [
