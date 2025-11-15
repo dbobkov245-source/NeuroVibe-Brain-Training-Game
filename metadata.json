@@ -1,0 +1,5 @@
+{
+  "name": "NeuroVibe: Brain Training Game",
+  "description": "An interactive chat-based game designed to train memory and cognitive skills through word challenges, story comprehension, and association tests, powered by the Gemini API.",
+  "requestFramePermissions": []
+}
