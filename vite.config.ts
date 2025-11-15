@@ -22,6 +22,7 @@ export default defineConfig({
       manifest: {
         name: 'NeuroVibe: Brain Training Game',
         short_name: 'NeuroVibe',
+        id: '/?source=pwa',
         description: 'An interactive chat-based game designed to train memory and cognitive skills through word challenges, story comprehension, and association tests, powered by the Gemini API.',
         theme_color: '#6d28d9',
         background_color: '#f9fafb',
@@ -31,6 +32,8 @@ export default defineConfig({
         start_url: '/',
         orientation: 'portrait-primary',
         lang: 'ru',
+        categories: ["games", "education", "health"],
+        iarc_rating_id: 'e84b072d-4522-4328-9325-02b3b7b3b47b', // Example ID
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -90,11 +93,20 @@ export default defineConfig({
             icons: [{ "src": "/icon.svg", "sizes": "any" }]
           }
         ],
+        share_target: {
+          action: '/',
+          method: 'GET',
+          enctype: 'application/x-www-form-urlencoded',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url'
+          }
+        },
         launch_handler: {
           client_mode: 'focus-existing'
         },
         edge_side_panel: {
-// FIX: Corrected syntax for object property
           preferred_width: 480
         },
         related_applications: [

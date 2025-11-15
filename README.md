@@ -35,7 +35,7 @@
 3.  **Настройте переменные окружения.**
     - В настройках проекта Vercel перейдите во вкладку **Settings** -> **Environment Variables**.
     - Добавьте новую переменную:
-      - **Name**: `GEMINI_API_KEY`
+      - **Name**: `API_KEY`
       - **Value**: Ваш API-ключ от Google Gemini (начинается с `AIza...`)
     - Нажмите **Save**.
 
@@ -63,7 +63,7 @@
     - Создайте файл `.env.local` в корне проекта.
     - Добавьте в него ваш API-ключ:
       ```
-      GEMINI_API_KEY=AIzaSy...
+      API_KEY=AIzaSy...
       ```
 
 4.  **Запустите проект:**

@@ -65,52 +65,46 @@ export default function App() {
 
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
     
-    setChatHistory(prevHistory => {
-        const apiHistory = [...prevHistory, userMessage];
+    // Use a temporary variable for the API call to avoid race conditions with state updates.
+    const updatedHistoryForApi = [...chatHistory, userMessage];
+    
+    if (!isHiddenPrompt) {
+      setChatHistory(updatedHistoryForApi);
+    }
 
-        (async () => {
-            try {
-                const modelResponse = await generateJsonResponse(apiHistory, SYSTEM_INSTRUCTION);
-                const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
-                setChatHistory(prev => [...prev, modelMessage]);
-                
-                if (modelResponse.xp_gained > 0) {
-                    setXp(prevXp => {
-                        const newXp = prevXp + modelResponse.xp_gained;
-                        checkAndUnlockAchievements({
-                            xp: newXp,
-                            gamesPlayed,
-                            lastModelResponse: modelResponse,
-                            currentGameMode: currentMode
-                        });
-                        return newXp;
-                    });
-                } else {
-                    setXp(prevXp => {
-                       checkAndUnlockAchievements({
-                          xp: prevXp,
-                          gamesPlayed,
-                          lastModelResponse: modelResponse,
-                          currentGameMode: currentMode,
-                       });
-                       return prevXp;
-                    });
-                }
-            } catch (error) {
-                const errorText = error instanceof Error ? error.message : String(error);
-                const errorMessage: ChatMessage = {
-                    role: 'model',
-                    parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
-                };
-                setChatHistory(prev => [...prev, errorMessage]);
-            } finally {
-                setIsLoading(false);
-            }
-        })();
+    try {
+      const modelResponse = await generateJsonResponse(updatedHistoryForApi, SYSTEM_INSTRUCTION);
+
+      const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
+      setChatHistory(prev => [...prev, modelMessage]);
+      
+      // Use a functional update for XP to get the latest state and avoid stale closures.
+      setXp(prevXp => {
+        const newXp = prevXp + modelResponse.xp_gained;
         
-        return isHiddenPrompt ? prevHistory : apiHistory;
-    });
-  }, [checkAndUnlockAchievements, gamesPlayed, currentMode]);
+        const turnContext: AchievementCheckContext = {
+            xp: newXp,
+            gamesPlayed,
+            lastModelResponse: modelResponse,
+            currentGameMode: currentMode
+        };
+        checkAndUnlockAchievements(turnContext);
+
+        return newXp;
+      });
+
+    } catch (error) {
+        // The service already formats errors, but this is a fallback.
+        const errorText = error instanceof Error ? error.message : String(error);
+        const errorMessage: ChatMessage = {
+            role: 'model',
+            parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
+        };
+        setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [chatHistory, gamesPlayed, currentMode, checkAndUnlockAchievements]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,18 +125,24 @@ export default function App() {
     sendMessage(hiddenPrompt, true);
   }, [sendMessage]);
 
-  // Handle URL query params for shortcuts
+  // Handle URL query params for shortcuts and share target
   useEffect(() => {
+    // Only run on initial load when chat is empty
+    if (chatHistory.length > 0) return;
+
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode') as GameMode;
+    const sharedText = urlParams.get('text');
+
     if (mode && ['words', 'story', 'associations'].includes(mode)) {
-      if (chatHistory.length === 0) {
-         handleModeSelect(mode);
-         // Clean up URL to prevent re-triggering on refresh
-         window.history.replaceState({}, document.title, window.location.pathname);
-      }
+       handleModeSelect(mode);
+       // Clean up URL to prevent re-triggering on refresh
+       window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (sharedText) {
+       sendMessage(sharedText, false);
+       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [handleModeSelect, chatHistory.length]);
+  }, [handleModeSelect, sendMessage, chatHistory.length]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
