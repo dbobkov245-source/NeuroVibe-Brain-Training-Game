@@ -24,7 +24,7 @@ export default async function handler(
         return res.status(400).json({ error: 'Неверное тело запроса: требуются history и systemInstruction.' });
     }
     
-    // Now apiKey is guaranteed to be a string
+    // Now apiKey is guaranteed to be a string, resolving the TS2345 error.
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
