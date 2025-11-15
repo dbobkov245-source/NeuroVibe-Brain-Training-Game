@@ -71,24 +71,34 @@ export default function App() {
       setChatHistory(prev => [...prev, userMessage]);
     }
 
-    const modelResponse = await generateJsonResponse(apiHistory, SYSTEM_INSTRUCTION);
+    try {
+        const modelResponse = await generateJsonResponse(apiHistory, SYSTEM_INSTRUCTION);
 
-    const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
-    setChatHistory(prev => [...prev, modelMessage]);
-    
-    if (modelResponse.xp_gained > 0) {
-      setXp(prevXp => prevXp + modelResponse.xp_gained);
+        const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
+        setChatHistory(prev => [...prev, modelMessage]);
+        
+        if (modelResponse.xp_gained > 0) {
+            setXp(prevXp => prevXp + modelResponse.xp_gained);
+        }
+        
+        const turnContext: AchievementCheckContext = {
+            xp: xp + modelResponse.xp_gained,
+            gamesPlayed,
+            lastModelResponse: modelResponse,
+            currentGameMode: currentMode
+        };
+        checkAndUnlockAchievements(turnContext);
+
+    } catch (error) {
+        const errorText = error instanceof Error ? error.message : String(error);
+        const errorMessage: ChatMessage = {
+            role: 'model',
+            parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
+        };
+        setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
+        setIsLoading(false);
     }
-    
-    const turnContext: AchievementCheckContext = {
-        xp: xp + modelResponse.xp_gained,
-        gamesPlayed,
-        lastModelResponse: modelResponse,
-        currentGameMode: currentMode
-    };
-    checkAndUnlockAchievements(turnContext);
-    
-    setIsLoading(false);
   };
 
   const handleSend = (e: React.FormEvent) => {

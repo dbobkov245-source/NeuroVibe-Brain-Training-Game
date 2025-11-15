@@ -31,13 +31,6 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           <p className="text-gray-600">{achievement.name}</p>
         </div>
       </div>
-      <style>{`
-        @keyframes fade-in-down {
-          0% { opacity: 0; transform: translate(-50%, -20px); }
-          100% { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .animate-fade-in-down { animation: fade-in-down 0.5s ease-out forwards; }
-      `}</style>
     </div>
   );
 };
