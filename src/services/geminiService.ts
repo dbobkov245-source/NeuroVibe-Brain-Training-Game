@@ -18,8 +18,6 @@ function isModelResponseData(obj: any): obj is ModelResponseData {
  * The API key is NOT handled on the client-side.
  */
 export async function generateJsonResponse(history: ChatMessage[], systemInstruction: { text: string }): Promise<ModelResponseData> {
-  // The frontend now calls a local proxy endpoint instead of Google's API directly.
-  // This proxy server will be responsible for securely adding the API key.
   const PROXY_ENDPOINT = '/api/generate'; 
 
   try {
@@ -34,19 +32,22 @@ export async function generateJsonResponse(history: ChatMessage[], systemInstruc
       }),
     });
 
+    // Try to parse the body regardless of response.ok to get the error message from the server
+    const responseBody = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ошибка сервера-посредника: ${errorData.error || response.statusText}`);
+      // Use the 'error' field from the server's JSON response if it exists
+      const errorMessage = responseBody?.error || response.statusText;
+      throw new Error(`Ошибка сервера-посредника: ${errorMessage}`);
     }
 
-    const parsed = await response.json();
-
-    if (isModelResponseData(parsed)) {
-      return parsed;
+    if (isModelResponseData(responseBody)) {
+      return responseBody;
     } else {
-      console.error("Invalid JSON structure received from proxy:", parsed);
+      console.error("Invalid JSON structure received from proxy:", responseBody);
       throw new Error("Получен неверный формат данных от сервера.");
     }
+
   } catch (error) {
     console.error("Proxy Communication Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка.";
