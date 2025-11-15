@@ -37,8 +37,13 @@ export default async function handler(
     });
 
     const jsonText = response.text;
+    
+    // 🔧 ИСПРАВЛЕНИЕ: Добавлена проверка на undefined
+    if (!jsonText) {
+        return res.status(500).json({ error: 'Пустой ответ от модели' });
+    }
+    
     const parsedData = JSON.parse(jsonText);
-
     return res.status(200).json(parsedData);
 
   } catch (error) {
