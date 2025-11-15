@@ -16,7 +16,7 @@ export default defineConfig({
             handler: 'NetworkOnly'
           }
         ],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,ts,tsx}']
+        globPatterns: ['**/*.{js,css,html,ico,svg}']
       },
       includeAssets: ['favicon.ico', 'icon.svg'],
       manifest: {
@@ -37,6 +37,29 @@ export default defineConfig({
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: "Начать игру 'Слова'",
+            short_name: "Слова",
+            description: "Начать новую игру на запоминание слов",
+            url: "/?mode=words",
+            icons: [{ "src": "/icon.svg", "sizes": "any" }]
+          },
+          {
+            name: "Начать игру 'История'",
+            short_name: "История",
+            description: "Начать новую игру на понимание истории",
+            url: "/?mode=story",
+            icons: [{ "src": "/icon.svg", "sizes": "any" }]
+          },
+          {
+            name: "Начать игру 'Ассоциации'",
+            short_name: "Ассоциации",
+            description: "Начать новую игру на ассоциативное мышление",
+            url: "/?mode=associations",
+            icons: [{ "src": "/icon.svg", "sizes": "any" }]
           }
         ]
       },

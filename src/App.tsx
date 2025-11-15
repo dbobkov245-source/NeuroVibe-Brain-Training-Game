@@ -57,7 +57,7 @@ export default function App() {
   }, [xp, gamesPlayed, checkAndUnlockAchievements]);
 
 
-  const sendMessage = async (userPrompt: string, isHiddenPrompt: boolean = false) => {
+  const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
     if (!userPrompt.trim()) return;
 
     setIsLoading(true);
@@ -65,24 +65,26 @@ export default function App() {
 
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
     
-    const apiHistory = [...chatHistory, userMessage];
+    // Use a function for setState to get the most up-to-date history
+    const updatedHistory = [...chatHistory, userMessage];
     
     if (!isHiddenPrompt) {
-      setChatHistory(prev => [...prev, userMessage]);
+      setChatHistory(updatedHistory);
     }
 
     try {
-        const modelResponse = await generateJsonResponse(apiHistory, SYSTEM_INSTRUCTION);
+        const modelResponse = await generateJsonResponse(updatedHistory, SYSTEM_INSTRUCTION);
 
         const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
         setChatHistory(prev => [...prev, modelMessage]);
         
+        const newXp = xp + modelResponse.xp_gained;
         if (modelResponse.xp_gained > 0) {
-            setXp(prevXp => prevXp + modelResponse.xp_gained);
+            setXp(newXp);
         }
         
         const turnContext: AchievementCheckContext = {
-            xp: xp + modelResponse.xp_gained,
+            xp: newXp,
             gamesPlayed,
             lastModelResponse: modelResponse,
             currentGameMode: currentMode
@@ -99,7 +101,7 @@ export default function App() {
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [chatHistory, checkAndUnlockAchievements, currentMode, gamesPlayed, xp]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,14 +120,13 @@ export default function App() {
       case 'associations': hiddenPrompt = 'Начни режим Ассоциации'; break;
     }
     sendMessage(hiddenPrompt, true);
-  }, [chatHistory]); // Dependency on chatHistory ensures sendMessage has the latest state
+  }, [sendMessage]);
 
   // Handle URL query params for shortcuts
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode') as GameMode;
     if (mode && ['words', 'story', 'associations'].includes(mode)) {
-      // Check if a game is already in progress to avoid restarting
       if (chatHistory.length === 0) {
          handleModeSelect(mode);
          // Clean up URL to prevent re-triggering on refresh
