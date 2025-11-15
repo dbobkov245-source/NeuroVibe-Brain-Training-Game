@@ -9,13 +9,15 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not set in environment variables.' });
-  }
   
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      // This error is critical and should be logged on the server.
+      console.error('GEMINI_API_KEY is not set in environment variables.');
+      return res.status(500).json({ error: 'API key is not configured on the server.' });
+    }
+
     const { history, systemInstruction } = req.body as { history: ChatMessage[], systemInstruction: { text: string } };
 
     if (!history || !systemInstruction) {
@@ -39,7 +41,7 @@ export default async function handler(
     return res.status(200).json(parsedData);
 
   } catch (error) {
-    console.error('Error calling Gemini API:', error);
+    console.error('Error in Vercel Function:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return res.status(500).json({ error: `Internal Server Error: ${errorMessage}` });
   }
