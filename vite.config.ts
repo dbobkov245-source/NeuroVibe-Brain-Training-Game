@@ -148,6 +148,18 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    host: true
+    host: true,
+    // Proxy for API during local development
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error', err);
+          });
+        }
+      }
+    }
   }
 });
