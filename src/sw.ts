@@ -56,9 +56,6 @@ registerRoute(
   new CacheOnly({ cacheName: 'offline-cache' })
 );
 
-// ======= ГЛАВНОЕ ИСПРАВЛЕНИЕ: Убираем ручную типизацию =======
-// TypeScript сам поймет тип event из ServiceWorkerGlobalScopeEventMap
-
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
@@ -99,14 +96,18 @@ async function syncGameProgress() {
 // Обработчик push (Push Notifications)
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {};
+  
+  // ✅ Убираем 'vibrate' – нестандартное свойство, вызывает ошибку TS
+  const options = {
+    body: data.body || 'Время потренировать мозг!',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'neurovibe-reminder',
+    requireInteraction: false,
+    // Можно добавить actions, data, silent и другие стандартные свойства
+  };
+  
   event.waitUntil(
-    self.registration.showNotification(data.title || 'NeuroVibe', {
-      body: data.body || 'Время потренировать мозг!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [200, 100, 200],
-      tag: 'neurovibe-reminder',
-      requireInteraction: false,
-    })
+    self.registration.showNotification(data.title || 'NeuroVibe', options)
   );
 });
