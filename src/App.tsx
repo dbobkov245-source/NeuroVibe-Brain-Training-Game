@@ -3,6 +3,7 @@ import { ChatMessage, GameMode, AchievementId, Achievement, AchievementCheckCont
 import { SYSTEM_INSTRUCTION } from './constants';
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
+import { OfflineStorage } from './offlineStorage';
 import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy, Download } from './components/Icons';
 import { ModeButton } from './components/ModeButton';
 import { AchievementToast } from './components/AchievementToast';
@@ -15,6 +16,7 @@ export default function App() {
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentMode, setCurrentMode] = useState<GameMode | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   
   // PWA State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -27,40 +29,91 @@ export default function App() {
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
 
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
 
+  // Online/offline handling
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Sync offline data when back online
+      offlineStorage.current.sync().catch(console.error);
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Load saved state
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const state = await offlineStorage.current.getGameState();
+        if (state) {
+          setXp(state.xp);
+          setGamesPlayed(state.gamesPlayed);
+          setUnlockedAchievements(new Set(state.unlockedAchievements));
+          if (state.chatHistory.length > 0) {
+            setChatHistory(state.chatHistory);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load game state:', error);
+      }
+    };
+    loadState();
+  }, []);
+
+  // Save state on changes
+  useEffect(() => {
+    const saveState = async () => {
+      try {
+        await offlineStorage.current.saveGameState({
+          xp,
+          gamesPlayed,
+          unlockedAchievements: Array.from(unlockedAchievements),
+          chatHistory,
+          lastSaved: Date.now()
+        });
+      } catch (error) {
+        console.error('Failed to save game state:', error);
+      }
+    };
+    saveState();
+  }, [xp, gamesPlayed, unlockedAchievements, chatHistory]);
+
   // PWA Install prompt handling
   useEffect(() => {
-  let isMounted = true; // ✅ Флаг отмены
-  
-  const handler = (e: Event) => {
-    e.preventDefault();
-    if (isMounted) {
-      setDeferredPrompt(e);
-    }
+    let isMounted = true;
     
-    setTimeout(() => {
-      if (isMounted && gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) {
-        setShowPWAPrompt(true);
-      }
-    }, 3000);
-  };
-
-  window.addEventListener('beforeinstallprompt', handler);
-  
-  return () => {
-    isMounted = false; // ✅ Очистка
-    window.removeEventListener('beforeinstallprompt', handler);
-  };
-}, [gamesPlayed]);
+    const handler = (e: Event) => {
+      e.preventDefault();
+      if (isMounted) setDeferredPrompt(e);
+      
+      setTimeout(() => {
+        if (isMounted && gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) {
+          setShowPWAPrompt(true);
+        }
+      }, 3000);
+    };
 
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
   }, [gamesPlayed]);
 
   const handleInstallPWA = useCallback(async () => {
@@ -101,24 +154,23 @@ export default function App() {
     }
   }, [unlockedAchievements]);
 
-  useEffect(() => {
-    const context: AchievementCheckContext = {
-      xp,
-      gamesPlayed,
-      currentGameMode: null,
-    };
-    checkAndUnlockAchievements(context);
-  }, [xp, gamesPlayed, checkAndUnlockAchievements]);
-
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
     if (!userPrompt.trim()) return;
+
+    // Check internet connectivity
+    if (!isOnline) {
+      const offlineMessage: ChatMessage = {
+        role: 'model',
+        parts: [{ text: '<strong>Офлайн режим:</strong> Подключитесь к интернету для продолжения игры.' }]
+      };
+      setChatHistory(prev => [...prev, offlineMessage]);
+      return;
+    }
 
     setIsLoading(true);
     setInput('');
 
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
-    
-    // Use a temporary variable for the API call to avoid race conditions with state updates.
     const updatedHistoryForApi = [...chatHistory, userMessage];
     
     if (!isHiddenPrompt) {
@@ -131,33 +183,28 @@ export default function App() {
       const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
       setChatHistory(prev => [...prev, modelMessage]);
       
-      // Use a functional update for XP to get the latest state and avoid stale closures.
       setXp(prevXp => {
         const newXp = prevXp + modelResponse.xp_gained;
-        
-        const turnContext: AchievementCheckContext = {
-            xp: newXp,
-            gamesPlayed,
-            lastModelResponse: modelResponse,
-            currentGameMode: currentMode
-        };
-        checkAndUnlockAchievements(turnContext);
-
+        checkAndUnlockAchievements({
+          xp: newXp,
+          gamesPlayed,
+          lastModelResponse: modelResponse,
+          currentGameMode: currentMode
+        });
         return newXp;
       });
 
     } catch (error) {
-        // The service already formats errors, but this is a fallback.
-        const errorText = error instanceof Error ? error.message : String(error);
-        const errorMessage: ChatMessage = {
-            role: 'model',
-            parts: [{ text: `<strong>Произошла ошибка:</strong> ${errorText}` }]
-        };
-        setChatHistory(prev => [...prev, errorMessage]);
+      const errorText = error instanceof Error ? error.message : String(error);
+      const errorMessage: ChatMessage = {
+        role: 'model',
+        parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }]
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  }, [chatHistory, gamesPlayed, currentMode, checkAndUnlockAchievements]);
+  }, [chatHistory, isOnline, gamesPlayed, currentMode, checkAndUnlockAchievements]);
 
   const handleSend = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -169,18 +216,18 @@ export default function App() {
   const handleModeSelect = useCallback((mode: GameMode) => {
     setCurrentMode(mode);
     setGamesPlayed(prev => prev + 1);
-    let hiddenPrompt = '';
-    switch (mode) {
-      case 'words': hiddenPrompt = 'Начни режим Слова'; break;
-      case 'story': hiddenPrompt = 'Начни режим История'; break;
-      case 'associations': hiddenPrompt = 'Начни режим Ассоциации'; break;
-    }
-    sendMessage(hiddenPrompt, true);
+    
+    const prompts = {
+      words: 'Начни режим Слова',
+      story: 'Начни режим История',
+      associations: 'Начни режим Ассоциации'
+    };
+    
+    sendMessage(prompts[mode], true);
   }, [sendMessage]);
 
-  // Handle URL query params for shortcuts and share target
+  // Handle URL query params
   useEffect(() => {
-    // Only run on initial load when chat is empty
     if (chatHistory.length > 0) return;
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -188,12 +235,11 @@ export default function App() {
     const sharedText = urlParams.get('text');
 
     if (mode && ['words', 'story', 'associations'].includes(mode)) {
-       handleModeSelect(mode);
-       // Clean up URL to prevent re-triggering on refresh
-       window.history.replaceState({}, document.title, window.location.pathname);
+      handleModeSelect(mode);
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (sharedText) {
-       sendMessage(sharedText, false);
-       window.history.replaceState({}, document.title, window.location.pathname);
+      sendMessage(sharedText, false);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [handleModeSelect, sendMessage, chatHistory.length]);
 
@@ -203,6 +249,12 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
+      {!isOnline && (
+        <div className="bg-yellow-100 text-yellow-800 text-center py-2 px-4 font-medium">
+          Офлайн режим: данные сохранятся локально
+        </div>
+      )}
+      
       {toastQueue.length > 0 && (
         <AchievementToast
           key={toastQueue[0].id}
@@ -261,14 +313,9 @@ export default function App() {
             return (
               <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 {isUser ? (
-                  <div className={userClasses}>
-                    {msg.parts[0].text}
-                  </div>
+                  <div className={userClasses}>{msg.parts[0].text}</div>
                 ) : (
-                  <div
-                    className={modelClasses}
-                    dangerouslySetInnerHTML={{ __html: msg.parts[0].text }}
-                  />
+                  <div className={modelClasses} dangerouslySetInnerHTML={{ __html: msg.parts[0].text }} />
                 )}
               </div>
             );
@@ -313,22 +360,18 @@ export default function App() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ваш ответ..."
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
                 aria-label="Поле для ввода ответа"
                 autoComplete="off"
               />
               <button
                 type="submit"
-                disabled={isLoading || !input.trim()}
+                disabled={isLoading || !input.trim() || !isOnline}
                 className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]"
                 aria-label={isLoading ? "Отправка..." : "Отправить"}
               >
-                {isLoading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <Send className="w-6 h-6" />
-                )}
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
               </button>
             </form>
           )}
