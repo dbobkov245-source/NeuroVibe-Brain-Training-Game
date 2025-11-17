@@ -1,3 +1,4 @@
+// ========== Импорты React ==========
 import { type FC, type SVGProps } from 'react';
 
 // ========== Базовые типы приложения ==========
@@ -11,11 +12,11 @@ export interface ChatMessage {
   parts: { text: string }[];
 }
 
-/** Игровые режимы */
+/** Игровые режимы (строгая типизация) */
 export const GAME_MODES = ['words', 'story', 'associations'] as const;
 export type GameMode = typeof GAME_MODES[number];
 
-/** ID достижений с жесткой типизацией */
+/** ID достижений (строгая типизация) */
 export const ACHIEVEMENT_IDS = [
   'STORY_PATHFINDER',
   'WORD_MASTER',
@@ -64,8 +65,6 @@ export interface AchievementDefinition extends Achievement {
   check: (context: AchievementCheckContext) => boolean;
 }
 
-// ========== Типы для офлайн-хранилища ==========
-
 /** Сохраненное состояние игры (IndexedDB/localStorage) */
 export interface GameState {
   xp: number;
@@ -75,55 +74,53 @@ export interface GameState {
   lastSaved: number;
 }
 
-// ========== Service Worker Types (для sw.ts) ==========
+// ========== Глобальные декларации для Service Worker ==========
+// 🔥 Эти типы нужны для src/sw.ts и должны быть доступны глобально
 
-/** Базовый интерфейс расширяемых событий SW */
-export interface ExtendableEvent extends Event {
-  waitUntil(fn: Promise<any>): void;
-}
+declare global {
+  // Базовое расширяемое событие SW
+  interface ExtendableEvent extends Event {
+    waitUntil(fn: Promise<any>): void;
+  }
 
-/** Событие fetch в Service Worker */
-export interface FetchEvent extends ExtendableEvent {
-  readonly request: Request;
-  readonly clientId: string;
-  readonly resultingClientId?: string;
-  readonly target: ServiceWorkerGlobalScope;
-  respondWith(response: Response | Promise<Response>): void;
-}
+  // Событие fetch
+  interface FetchEvent extends ExtendableEvent {
+    readonly request: Request;
+    readonly clientId: string;
+    readonly resultingClientId?: string;
+    respondWith(response: Response | Promise<Response>): void;
+  }
 
-/** Событие sync (Background Sync) */
-export interface SyncEvent extends ExtendableEvent {
-  readonly tag: string;
-  readonly lastChance: boolean;
-}
+  // Событие sync (Background Sync API) - исправляет ошибку TS2304
+  interface SyncEvent extends ExtendableEvent {
+    readonly tag: string;
+    readonly lastChance: boolean;
+  }
 
-/** Событие push (Push API) */
-export interface PushEvent extends ExtendableEvent {
-  readonly data: PushMessageData | null;
-}
+  // Событие push (Push API)
+  interface PushEventData {
+    arrayBuffer(): ArrayBuffer;
+    blob(): Blob;
+    json(): any;
+    text(): string;
+  }
 
-export interface PushMessageData {
-  arrayBuffer(): ArrayBuffer;
-  blob(): Blob;
-  json(): any;
-  text(): string;
-}
+  interface PushEvent extends ExtendableEvent {
+    readonly data: PushEventData | null;
+  }
 
-// ========== Кастомные ошибки (опционально) ==========
-
-/** Класс ошибки для Gemini Service */
-export class GeminiError extends Error {
-  constructor(
-    message: string,
-    public statusCode?: number,
-    public isNetworkError?: boolean
-  ) {
-    super(message);
-    this.name = 'GeminiError';
+  // Расширяем ServiceWorkerGlobalScope
+  interface ServiceWorkerGlobalScopeEventMap {
+    sync: SyncEvent;
+    push: PushEvent;
+    fetch: FetchEvent;
   }
 }
 
-// ========== Тип-гард (type guard) функции ==========
+// Обязательно для модулей с глобальными декларациями
+export {};
+
+// ========== Утилитарные функции (type guards) ==========
 
 /** Проверка, является ли объект корректным ответом модели */
 export function isModelResponseData(obj: unknown): obj is ModelResponseData {
