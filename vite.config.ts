@@ -1,57 +1,87 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      strategies: 'generateSW',
+      registerType: 'prompt',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectRegister: 'auto',
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkOnly'
-          }
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
         ],
-        globPatterns: ['**/*.{js,css,html,ico,svg,png}']
       },
-      includeAssets: ['favicon.ico', 'icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'NeuroVibe: Brain Training Game',
         short_name: 'NeuroVibe',
-        id: '/?source=pwa',
-        description: 'An interactive chat-based game designed to train memory and cognitive skills through word challenges, story comprehension, and association tests, powered by the Gemini API.',
+        description: 'Интерактивная игра для тренировки памяти и когнитивных навыков',
         theme_color: '#6d28d9',
         background_color: '#f9fafb',
         display: 'standalone',
-        display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
-        scope: '/',
-        start_url: '/',
+        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
         orientation: 'portrait-primary',
         lang: 'ru',
-        categories: ["games", "education", "health"],
-        iarc_rating_id: 'e84b072d-4522-4328-9325-02b3b7b3b47b', // Example ID
+        categories: ['games', 'education', 'health'],
+        start_url: '/',
+        scope: '/',
+        id: '/',
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/pwa-512x512.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
           },
           {
+            src: '/apple-touch-icon.png',
+            sizes: '180x180',
+            type: 'image/png',
+            purpose: 'apple touch icon'
+          },
+          {
             src: '/icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ],
         screenshots: [
@@ -60,37 +90,37 @@ export default defineConfig({
             sizes: '1080x1920',
             type: 'image/png',
             form_factor: 'narrow',
-            label: 'Game chat interface on mobile'
+            label: 'Мобильный интерфейс игры'
           },
           {
             src: '/screenshots/screenshot-desktop-1.png',
             sizes: '1920x1080',
             type: 'image/png',
             form_factor: 'wide',
-            label: 'Game mode selection on desktop'
+            label: 'Выбор режима на десктопе'
           }
         ],
         shortcuts: [
           {
-            name: "Начать игру 'Слова'",
-            short_name: "Слова",
-            description: "Начать новую игру на запоминание слов",
-            url: "/?mode=words",
-            icons: [{ "src": "/icon.svg", "sizes": "any" }]
+            name: 'Начать игру "Слова"',
+            short_name: 'Слова',
+            description: 'Начать новую игру на запоминание слов',
+            url: '/?mode=words',
+            icons: [{ src: '/icon.svg', sizes: 'any' }]
           },
           {
-            name: "Начать игру 'История'",
-            short_name: "История",
-            description: "Начать новую игру на понимание истории",
-            url: "/?mode=story",
-            icons: [{ "src": "/icon.svg", "sizes": "any" }]
+            name: 'Начать игру "История"',
+            short_name: 'История',
+            description: 'Начать новую игру на понимание истории',
+            url: '/?mode=story',
+            icons: [{ src: '/icon.svg', sizes: 'any' }]
           },
           {
-            name: "Начать игру 'Ассоциации'",
-            short_name: "Ассоциации",
-            description: "Начать новую игру на ассоциативное мышление",
-            url: "/?mode=associations",
-            icons: [{ "src": "/icon.svg", "sizes": "any" }]
+            name: 'Начать игру "Ассоциации"',
+            short_name: 'Ассоциации',
+            description: 'Начать новую игру на ассоциативное мышление',
+            url: '/?mode=associations',
+            icons: [{ src: '/icon.svg', sizes: 'any' }]
           }
         ],
         share_target: {
@@ -108,21 +138,16 @@ export default defineConfig({
         },
         edge_side_panel: {
           preferred_width: 480
-        },
-        related_applications: [
-          // TODO: Замените на ваши реальные ID
-          {
-            "platform": "play",
-            "url": "https://play.google.com/store/apps/details?id=com.example.neurovibe",
-            "id": "com.example.neurovibe"
-          },
-          // TODO: Замените на ваш реальный URL
-          {
-            "platform": "itunes",
-            "url": "https://itunes.apple.com/app/neurovibe/id123456789"
-          }
-        ]
+        }
       },
+      devOptions: {
+        enabled: true,
+        type: 'module'
+      }
     })
   ],
-})
+  server: {
+    port: 3000,
+    host: true
+  }
+});
