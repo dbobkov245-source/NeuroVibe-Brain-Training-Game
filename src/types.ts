@@ -63,22 +63,35 @@ export interface GameState {
   lastSaved: number;
 }
 
-// ========== Service Worker Types (для sw.ts) ==========
-// 🔥 Только расширяем существующие типы, не переопределяем их
+// ========== Service Worker Глобальные типы ==========
+// 🔥 Критично для работы sw.ts с TypeScript
 
 declare global {
-  // SyncEvent уже существует в lib.dom.d.ts, но может быть недоступен в некоторых конфигах
+  // Определяем SyncEvent
   interface SyncEvent extends ExtendableEvent {
     readonly tag: string;
     readonly lastChance: boolean;
   }
+
+  // Определяем FetchEvent (на всякий случай)
+  interface FetchEvent extends ExtendableEvent {
+    readonly request: Request;
+    readonly clientId: string;
+    readonly resultingClientId: string;
+    respondWith(response: Response | Promise<Response>): void;
+  }
+
+  // Расширяем глобальную карту событий SW
+  interface ServiceWorkerGlobalScopeEventMap {
+    sync: SyncEvent;
+    fetch: FetchEvent;
+  }
 }
 
-// ========== Утилитарные функции ==========
+// ========== Utils & Type Guards ==========
 
 export function isModelResponseData(obj: unknown): obj is ModelResponseData {
   if (typeof obj !== 'object' || obj === null) return false;
-  
   const data = obj as Record<string, unknown>;
   return (
     typeof data.display_html === 'string' &&
