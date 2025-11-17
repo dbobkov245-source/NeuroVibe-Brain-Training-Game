@@ -36,17 +36,28 @@ export default function App() {
 
   // PWA Install prompt handling
   useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
+  let isMounted = true; // ✅ Флаг отмены
+  
+  const handler = (e: Event) => {
+    e.preventDefault();
+    if (isMounted) {
       setDeferredPrompt(e);
-      
-      // Only show prompt after user has played a bit
-      setTimeout(() => {
-        if (gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) {
-          setShowPWAPrompt(true);
-        }
-      }, 3000);
-    };
+    }
+    
+    setTimeout(() => {
+      if (isMounted && gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) {
+        setShowPWAPrompt(true);
+      }
+    }, 3000);
+  };
+
+  window.addEventListener('beforeinstallprompt', handler);
+  
+  return () => {
+    isMounted = false; // ✅ Очистка
+    window.removeEventListener('beforeinstallprompt', handler);
+  };
+}, [gamesPlayed]);
 
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
