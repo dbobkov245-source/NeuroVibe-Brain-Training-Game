@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChatMessage, GameMode, AchievementId, Achievement, AchievementCheckContext } from './types';
 import { SYSTEM_INSTRUCTION } from './constants';
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
-import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy } from './components/Icons';
+import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy, Download } from './components/Icons';
 import { ModeButton } from './components/ModeButton';
 import { AchievementToast } from './components/AchievementToast';
 import { AchievementsPanel } from './components/AchievementsPanel';
+import { PWAPrompt } from './components/PWAPrompt';
 
 export default function App() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -14,6 +15,10 @@ export default function App() {
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentMode, setCurrentMode] = useState<GameMode | null>(null);
+  
+  // PWA State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPWAPrompt, setShowPWAPrompt] = useState<boolean>(false);
   
   // Achievement State
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<AchievementId>>(new Set());
@@ -28,6 +33,44 @@ export default function App() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
+
+  // PWA Install prompt handling
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      
+      // Only show prompt after user has played a bit
+      setTimeout(() => {
+        if (gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) {
+          setShowPWAPrompt(true);
+        }
+      }, 3000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, [gamesPlayed]);
+
+  const handleInstallPWA = useCallback(async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    
+    if (choice.outcome === 'accepted') {
+      console.log('PWA installed');
+    }
+    
+    setDeferredPrompt(null);
+    setShowPWAPrompt(false);
+    localStorage.setItem('pwa-prompt-dismissed', 'true');
+  }, [deferredPrompt]);
+
+  const dismissPWAPrompt = useCallback(() => {
+    setShowPWAPrompt(false);
+    localStorage.setItem('pwa-prompt-dismissed', 'true');
+  }, []);
 
   const checkAndUnlockAchievements = useCallback((context: AchievementCheckContext) => {
     const newUnlocks: Achievement[] = [];
@@ -55,7 +98,6 @@ export default function App() {
     };
     checkAndUnlockAchievements(context);
   }, [xp, gamesPlayed, checkAndUnlockAchievements]);
-
 
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
     if (!userPrompt.trim()) return;
@@ -106,12 +148,12 @@ export default function App() {
     }
   }, [chatHistory, gamesPlayed, currentMode, checkAndUnlockAchievements]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
       sendMessage(input, false);
     }
-  };
+  }, [input, isLoading, sendMessage]);
 
   const handleModeSelect = useCallback((mode: GameMode) => {
     setCurrentMode(mode);
@@ -144,6 +186,10 @@ export default function App() {
     }
   }, [handleModeSelect, sendMessage, chatHistory.length]);
 
+  const achievementsCount = useMemo(() => {
+    return `${unlockedAchievements.size}/${ACHIEVEMENTS.length}`;
+  }, [unlockedAchievements]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
       {toastQueue.length > 0 && (
@@ -153,12 +199,21 @@ export default function App() {
           onClose={() => setToastQueue(prev => prev.slice(1))}
         />
       )}
+      
+      {showPWAPrompt && (
+        <PWAPrompt 
+          onInstall={handleInstallPWA}
+          onDismiss={dismissPWAPrompt}
+        />
+      )}
+      
       <AchievementsPanel
         isOpen={showAchievementsPanel}
         onClose={() => setShowAchievementsPanel(false)}
         allAchievements={ACHIEVEMENTS}
         unlockedIds={unlockedAchievements}
       />
+      
       <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -166,8 +221,15 @@ export default function App() {
             <h1 className="text-2xl font-bold text-gray-800">NeuroVibe</h1>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setShowAchievementsPanel(true)} className="text-gray-500 hover:text-violet-600 transition-colors" aria-label="Показать достижения">
+            <button 
+              onClick={() => setShowAchievementsPanel(true)} 
+              className="text-gray-500 hover:text-violet-600 transition-colors relative"
+              aria-label="Показать достижения"
+            >
               <Trophy className="w-6 h-6" />
+              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {achievementsCount}
+              </span>
             </button>
             <div className="flex items-center gap-2 bg-green-100 text-green-800 font-bold rounded-full px-4 py-1.5 shadow-sm transition-all duration-300 hover:shadow-md">
               <Award className="w-5 h-5" />
@@ -243,11 +305,12 @@ export default function App() {
                 disabled={isLoading}
                 className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
                 aria-label="Поле для ввода ответа"
+                autoComplete="off"
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none"
+                className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]"
                 aria-label={isLoading ? "Отправка..." : "Отправить"}
               >
                 {isLoading ? (
