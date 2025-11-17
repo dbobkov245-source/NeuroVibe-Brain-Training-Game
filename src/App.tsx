@@ -4,7 +4,7 @@ import { SYSTEM_INSTRUCTION } from './constants';
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
 import { OfflineStorage } from './offlineStorage';
-import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy, Download } from './components/Icons';
+import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy } from './components/Icons';
 import { ModeButton } from './components/ModeButton';
 import { AchievementToast } from './components/AchievementToast';
 import { AchievementsPanel } from './components/AchievementsPanel';
@@ -18,11 +18,8 @@ export default function App() {
   const [currentMode, setCurrentMode] = useState<GameMode | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   
-  // PWA State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPWAPrompt, setShowPWAPrompt] = useState<boolean>(false);
-  
-  // Achievement State
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<AchievementId>>(new Set());
   const [gamesPlayed, setGamesPlayed] = useState<number>(0);
   const [showAchievementsPanel, setShowAchievementsPanel] = useState<boolean>(false);
@@ -31,32 +28,27 @@ export default function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
 
-  // Online/offline handling
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      // Sync offline data when back online
       offlineStorage.current.sync().catch(console.error);
     };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  // Load saved state
   useEffect(() => {
     const loadState = async () => {
       try {
@@ -64,10 +56,8 @@ export default function App() {
         if (state) {
           setXp(state.xp);
           setGamesPlayed(state.gamesPlayed);
-          setUnlockedAchievements(new Set(state.unlockedAchievements));
-          if (state.chatHistory.length > 0) {
-            setChatHistory(state.chatHistory);
-          }
+          setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
+          if (state.chatHistory.length > 0) setChatHistory(state.chatHistory);
         }
       } catch (error) {
         console.error('Failed to load game state:', error);
@@ -76,7 +66,6 @@ export default function App() {
     loadState();
   }, []);
 
-  // Save state on changes
   useEffect(() => {
     const saveState = async () => {
       try {
@@ -94,10 +83,8 @@ export default function App() {
     saveState();
   }, [xp, gamesPlayed, unlockedAchievements, chatHistory]);
 
-  // PWA Install prompt handling
   useEffect(() => {
     let isMounted = true;
-    
     const handler = (e: Event) => {
       e.preventDefault();
       if (isMounted) setDeferredPrompt(e);
@@ -108,7 +95,6 @@ export default function App() {
         }
       }, 3000);
     };
-
     window.addEventListener('beforeinstallprompt', handler);
     return () => {
       isMounted = false;
@@ -118,14 +104,9 @@ export default function App() {
 
   const handleInstallPWA = useCallback(async () => {
     if (!deferredPrompt) return;
-    
     deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
-    
-    if (choice.outcome === 'accepted') {
-      console.log('PWA installed');
-    }
-    
+    if (choice.outcome === 'accepted') console.log('PWA installed');
     setDeferredPrompt(null);
     setShowPWAPrompt(false);
     localStorage.setItem('pwa-prompt-dismissed', 'true');
@@ -143,9 +124,8 @@ export default function App() {
         newUnlocks.push(ach);
       }
     });
-
     if (newUnlocks.length > 0) {
-      setUnlockedAchievements(prev => {
+      setUnlockedAchievements((prev: Set<AchievementId>) => {
         const newSet = new Set(prev);
         newUnlocks.forEach(ach => newSet.add(ach.id));
         return newSet;
@@ -154,10 +134,13 @@ export default function App() {
     }
   }, [unlockedAchievements]);
 
+  useEffect(() => {
+    const context: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: null };
+    checkAndUnlockAchievements(context);
+  }, [xp, gamesPlayed, checkAndUnlockAchievements]);
+
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
     if (!userPrompt.trim()) return;
-
-    // Check internet connectivity
     if (!isOnline) {
       const offlineMessage: ChatMessage = {
         role: 'model',
@@ -166,23 +149,16 @@ export default function App() {
       setChatHistory(prev => [...prev, offlineMessage]);
       return;
     }
-
     setIsLoading(true);
     setInput('');
-
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
     const updatedHistoryForApi = [...chatHistory, userMessage];
-    
-    if (!isHiddenPrompt) {
-      setChatHistory(updatedHistoryForApi);
-    }
+    if (!isHiddenPrompt) setChatHistory(updatedHistoryForApi);
 
     try {
       const modelResponse = await generateJsonResponse(updatedHistoryForApi, SYSTEM_INSTRUCTION);
-
       const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
       setChatHistory(prev => [...prev, modelMessage]);
-      
       setXp(prevXp => {
         const newXp = prevXp + modelResponse.xp_gained;
         checkAndUnlockAchievements({
@@ -193,7 +169,6 @@ export default function App() {
         });
         return newXp;
       });
-
     } catch (error) {
       const errorText = error instanceof Error ? error.message : String(error);
       const errorMessage: ChatMessage = {
@@ -208,32 +183,25 @@ export default function App() {
 
   const handleSend = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() && !isLoading) {
-      sendMessage(input, false);
-    }
+    if (input.trim() && !isLoading) sendMessage(input, false);
   }, [input, isLoading, sendMessage]);
 
   const handleModeSelect = useCallback((mode: GameMode) => {
     setCurrentMode(mode);
     setGamesPlayed(prev => prev + 1);
-    
     const prompts = {
       words: 'Начни режим Слова',
       story: 'Начни режим История',
       associations: 'Начни режим Ассоциации'
     };
-    
     sendMessage(prompts[mode], true);
   }, [sendMessage]);
 
-  // Handle URL query params
   useEffect(() => {
     if (chatHistory.length > 0) return;
-
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode') as GameMode;
     const sharedText = urlParams.get('text');
-
     if (mode && ['words', 'story', 'associations'].includes(mode)) {
       handleModeSelect(mode);
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -254,7 +222,6 @@ export default function App() {
           Офлайн режим: данные сохранятся локально
         </div>
       )}
-      
       {toastQueue.length > 0 && (
         <AchievementToast
           key={toastQueue[0].id}
@@ -262,21 +229,18 @@ export default function App() {
           onClose={() => setToastQueue(prev => prev.slice(1))}
         />
       )}
-      
       {showPWAPrompt && (
         <PWAPrompt 
           onInstall={handleInstallPWA}
           onDismiss={dismissPWAPrompt}
         />
       )}
-      
       <AchievementsPanel
         isOpen={showAchievementsPanel}
         onClose={() => setShowAchievementsPanel(false)}
         allAchievements={ACHIEVEMENTS}
         unlockedIds={unlockedAchievements}
       />
-      
       <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -301,7 +265,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
       <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4">
         <div className="max-w-3xl mx-auto space-y-4">
           {chatHistory.map((msg, index) => {
@@ -309,7 +272,6 @@ export default function App() {
             const bubbleClasses = `p-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%]`;
             const userClasses = `${bubbleClasses} bg-violet-600 text-white rounded-br-lg`;
             const modelClasses = `${bubbleClasses} bg-white text-gray-800 rounded-bl-lg border border-gray-100`;
-
             return (
               <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 {isUser ? (
@@ -329,7 +291,6 @@ export default function App() {
           )}
         </div>
       </main>
-
       <footer className="sticky bottom-0 z-10 w-full bg-white/80 backdrop-blur-md p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="max-w-3xl mx-auto">
           {chatHistory.length === 0 && !isLoading ? (
