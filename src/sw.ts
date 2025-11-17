@@ -2,8 +2,9 @@
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
+import { StaleWhileRevalidate, NetworkFirst, CacheOnly } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -19,11 +20,10 @@ registerRoute(
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 })
     ],
-    networkTimeoutSeconds: 3,
+    networkTimeoutSeconds: 3
   })
 );
 
@@ -32,29 +32,62 @@ registerRoute(
   ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
   new StaleWhileRevalidate({
     cacheName: 'google-fonts-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 })
+    ]
   })
 );
 
-// Skip waiting and claim clients immediately
-self.addEventListener('install', () => {
-  self.skipWaiting();
+// Cache images
+registerRoute(
+  /\.(?:png|jpg|jpeg|svg|ico|webp)$/i,
+  new StaleWhileRevalidate({
+    cacheName: 'images-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] })
+    ]
+  })
+);
+
+// Offline fallback
+const OFFLINE_PAGE = '/offline.html';
+const OFFLINE_IMAGE = '/offline-image.svg';
+
+// Cache offline page
+registerRoute(
+  OFFLINE_PAGE,
+  new CacheOnly({
+    cacheName: 'offline-cache'
+  })
+);
+
+// Show offline page when navigation fails
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(OFFLINE_PAGE) || new Response('Offline', { status: 503 });
+      })
+    );
+  }
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+// Background sync for game progress
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-game-progress') {
+    event.waitUntil(syncGameProgress());
+  }
 });
 
-// Handle push notifications (if needed in future)
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'NeuroVibe', {
-      body: data.body || 'Время потренировать мозг!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [200, 100, 200],
-      tag: 'neurovibe-reminder',
-      requireInteraction: false,
-    })
-  );
-});
+async function syncGameProgress() {
+  try {
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => client.postMessage({ type: 'SYNC_COMPLETE' }));
+  } catch (error) {
+    console.error('Background sync failed:', error);
+  }
+}
+
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
