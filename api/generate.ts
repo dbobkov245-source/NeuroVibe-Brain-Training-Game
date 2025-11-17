@@ -2,15 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
 import { ChatMessage } from '../src/types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  // Ensure the API key exists before any other logic
-  // FIX: Use process.env.API_KEY as per the guidelines.
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    // FIX: Updated error message to reflect the correct environment variable.
     console.error('API_KEY is not set in environment variables.');
     return res.status(500).json({ error: 'Ключ API не настроен на сервере.' });
   }
@@ -26,7 +20,6 @@ export default async function handler(
         return res.status(400).json({ error: 'Неверное тело запроса: требуются history и systemInstruction.' });
     }
     
-    // Now apiKey is guaranteed to be a string, resolving the TS2345 error.
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
@@ -40,7 +33,6 @@ export default async function handler(
 
     const jsonText = response.text;
     
-    // 🔧 ИСПРАВЛЕНИЕ: Добавлена проверка на undefined
     if (!jsonText) {
         return res.status(500).json({ error: 'Пустой ответ от модели' });
     }
@@ -51,6 +43,8 @@ export default async function handler(
   } catch (error) {
     console.error('Error in Vercel Function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка';
+    
+    // Return JSON error for better handling on client
     return res.status(500).json({ error: `Внутренняя ошибка сервера: ${errorMessage}` });
   }
 }
