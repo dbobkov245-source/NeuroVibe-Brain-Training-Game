@@ -3,10 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#6d28d9" />
-    <meta name="description" content="Интерактивная игра для тренировки памяти и когнитивных навыков" />
     
-    <!-- Content Security Policy -->
+    <!-- PWA Основные метатеги (ОБЯЗАТЕЛЬНО в head!) -->
+    <meta name="theme-color" content="#6d28d9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NeuroVibe" />
+    <meta name="application-name" content="NeuroVibe" />
+    <meta name="description" content="Интерактивная игра для тренировки памяти и когнитивных навыков" />
+
+    <!-- Манифест и иконки -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- CSP (можно оставить, но лучше вынести в заголовки Vercel) -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline';
@@ -14,28 +27,15 @@
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https:;
       connect-src 'self' https://generativelanguage.googleapis.com;
-      worker-src 'self';
+      worker-src 'self' blob:;
       manifest-src 'self';
     ">
 
-    <!-- iOS PWA -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NeuroVibe">
-    
-    <!-- Android TWA -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="NeuroVibe">
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <title>NeuroVibe: Brain Training Game</title>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Preconnect to Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
   <body class="bg-gray-50">
     <div id="root"></div>
