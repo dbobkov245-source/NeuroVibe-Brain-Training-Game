@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.1",
-    "lottie-web": "^5.12.2", // ✅ Добавлено
+    "lottie-web": "^5.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "workbox-window": "^7.1.0",
@@ -24,10 +24,11 @@
     "@types/node": "^20.14.9",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/workbox-precaching": "^4.3.1", // ✅ Добавлено
-    "@types/workbox-routing": "^4.3.1", // ✅ Добавлено
-    "@types/workbox-strategies": "^4.3.1", // ✅ Добавлено
-    "@tsconfig/vite-react": "^3.0.2", // ✅ Добавлено (для ImportMeta)
+    "@types/workbox-window": "^4.3.4",
+    "@types/workbox-precaching": "^4.3.1",
+    "@types/workbox-routing": "^4.3.1",
+    "@types/workbox-strategies": "^4.3.1",
+    "@tsconfig/vite-react": "^3.0.2",
     "@vercel/node": "^3.2.3",
     "@vitejs/plugin-react": "^4.3.1",
     "@vite-pwa/assets-generator": "^0.2.4",
