@@ -8,6 +8,7 @@ export type MessageRole = 'user' | 'model';
 export interface ChatMessage {
   role: MessageRole;
   parts: { text: string }[];
+  isHidden?: boolean; // 🆕 Скрывать сообщение в UI (для вопросов памяти)
 }
 
 export const GAME_MODES = ['words', 'story', 'associations'] as const;
@@ -42,6 +43,7 @@ export interface ModelResponseData {
   display_html: string;
   xp_gained: number;
   game_data: GameData;
+  isMemoryContent?: boolean; // 🆕 Контент, который нужно скрыть после показа
 }
 
 export interface AchievementCheckContext {
@@ -67,13 +69,11 @@ export interface GameState {
 // 🔥 Критично для работы sw.ts с TypeScript
 
 declare global {
-  // Определяем SyncEvent
   interface SyncEvent extends ExtendableEvent {
     readonly tag: string;
     readonly lastChance: boolean;
   }
 
-  // Определяем FetchEvent (на всякий случай)
   interface FetchEvent extends ExtendableEvent {
     readonly request: Request;
     readonly clientId: string;
@@ -81,7 +81,6 @@ declare global {
     respondWith(response: Response | Promise<Response>): void;
   }
 
-  // Расширяем глобальную карту событий SW
   interface ServiceWorkerGlobalScopeEventMap {
     sync: SyncEvent;
     fetch: FetchEvent;
