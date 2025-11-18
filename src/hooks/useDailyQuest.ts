@@ -1,3 +1,4 @@
+// src/hooks/useDailyQuest.ts
 import { useEffect, useState } from 'react';
 import { DailyQuest } from '../types';
 
@@ -7,7 +8,29 @@ export function useDailyQuest() {
   const [quest, setQuest] = useState<DailyQuest | null>(null);
 
   useEffect(() => {
-    const loadQuest = () => {
+    const loadQuest = async () => {
+      try {
+        // Пытаемся загрузить сгенерированный квест
+        const response = await fetch('/daily.json');
+        if (response.ok) {
+          const serverQuest = await response.json();
+          const now = Date.now();
+          
+          // Проверяем, не устарел ли квест
+          if (!serverQuest.ts || now - serverQuest.ts > DAY_MS) {
+            // Если устарел, используем локальную резервную копию
+            throw new Error('Server quest is outdated');
+          }
+          
+          setQuest(serverQuest);
+          localStorage.setItem('dailyQuest', JSON.stringify({ ...serverQuest, loadedFrom: 'server' }));
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to load server quest:', error);
+      }
+
+      // Локальная резервная копия (если серверный файл недоступен или устарел)
       const raw = localStorage.getItem('dailyQuest');
       const saved = raw ? JSON.parse(raw) : null;
       const now = Date.now();
@@ -30,7 +53,7 @@ export function useDailyQuest() {
           completed: false,
           ts: now,
         };
-        localStorage.setItem('dailyQuest', JSON.stringify(fresh));
+        localStorage.setItem('dailyQuest', JSON.stringify({ ...fresh, loadedFrom: 'local' }));
         setQuest(fresh);
       } else {
         setQuest(saved);
