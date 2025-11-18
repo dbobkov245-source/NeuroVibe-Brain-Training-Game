@@ -1,26 +1,55 @@
+// src/sw.ts
 /// <reference lib="webworker" />
-/// <reference types="vite-plugin-pwa/client" /> // ✅ Для __WB_MANIFEST
-
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate } from 'workbox-strategies';
+import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
-declare const self: ServiceWorkerGlobalScope; // ✅ Правильный тип
+declare const self: ServiceWorkerGlobalScope;
 
-precacheAndRoute(self.__WB_MANIFEST);
+// Прекешируем всё, что собрал Vite
+precacheAndRoute(self.__WB_MANIFEST || []);
+
+// Очистка старых кешей
 cleanupOutdatedCaches();
 
-registerRoute(({ request }) => request.destination === 'image', new StaleWhileRevalidate({ cacheName: 'images' }));
+// Кеширование Google Fonts
+registerRoute(
+  /^https:\/\/fonts\.googleapis\.com/,
+  new CacheFirst({
+    cacheName: 'google-fonts-stylesheets',
+  })
+);
 
-self.addEventListener('push', (e) => {
-  const data = (e as PushEvent).data?.json() ?? {}; // ✅ Приведение типа
-  e.waitUntil(
-    self.registration.showNotification('NeuroVibe', {
-      body: data.body ?? 'Время потренировать мозг!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'daily-quest',
-      actions: [{ action: 'open', title: 'Играть' }],
-    })
-  );
-});
+registerRoute(
+  /^https:\/\/fonts\.gstatic\.com/,
+  new CacheFirst({
+    cacheName: 'google-fonts-webfonts',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 60 * 24 * 365,
+      }),
+    ],
+  })
+);
+
+// Оффлайн fallback
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  async () => {
+    try {
+      return await fetch('/offline.html');
+    } catch {
+      return caches.match('/offline.html')!;
+    }
+  }
+);
+
+// Остальные ресурсы — StaleWhileRevalidate
+registerRoute(
+  /\.(?:png|jpg|jpeg|svg|ico|woff2?)$/,
+  new StaleWhileRevalidate({
+    cacheName: 'assets',
+  })
+);
