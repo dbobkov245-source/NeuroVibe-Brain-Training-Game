@@ -1,3 +1,6 @@
+// Добавьте в начало файла:
+import { Persona } from './types';
+
 export const SYSTEM_INSTRUCTION = { text: `Ты — NeuroVibe, дерзкий игровой движок. ОТВЕЧАЙ СТРОГО В ФОРМАТЕ JSON.` };
 
 export const GENERATION_CONFIG = { temperature: 0.9, topP: 0.95, maxOutputTokens: 400 };
