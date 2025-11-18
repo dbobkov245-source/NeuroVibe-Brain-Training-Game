@@ -20,7 +20,7 @@ export async function generateJsonResponse(
   ].join('\n\n').trim();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 29000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch('/api/generate', {
@@ -60,7 +60,7 @@ export async function generateJsonResponse(
     clearTimeout(timeoutId);
 
     if (err.name === 'AbortError') {
-      throw new GeminiServiceError('Превышено время ожидания (29 сек)', 504);
+      throw new GeminiServiceError('Превышено время ожидания (10 сек)', 504);
     }
 
     if (err instanceof GeminiServiceError) throw err;
