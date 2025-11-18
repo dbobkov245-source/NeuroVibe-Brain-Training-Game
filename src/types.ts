@@ -8,18 +8,21 @@ export type MessageRole = 'user' | 'model';
 export interface ChatMessage {
   role: MessageRole;
   parts: { text: string }[];
-  isHidden?: boolean; // 🆕 Скрывать сообщение в UI (для вопросов памяти)
+  isHidden?: boolean; // Скрывать сообщение в UI (для вопросов памяти)
 }
 
 export const GAME_MODES = ['words', 'story', 'associations'] as const;
 export type GameMode = typeof GAME_MODES[number];
 
+// 🆕 ОБНОВЛЁН: Добавлены новые идентификаторы
 export const ACHIEVEMENT_IDS = [
   'STORY_PATHFINDER',
   'WORD_MASTER',
   'ASSOCIATION_ACE',
   'NOVICE_NEURONAUT',
-  'FIVE_TIME_CHAMPION'
+  'FIVE_TIME_CHAMPION',
+  'SARCASM_KING',
+  'DARK_PHILOSOPHER'
 ] as const;
 export type AchievementId = typeof ACHIEVEMENT_IDS[number];
 
@@ -43,7 +46,7 @@ export interface ModelResponseData {
   display_html: string;
   xp_gained: number;
   game_data: GameData;
-  isMemoryContent?: boolean; // 🆕 Контент, который нужно скрыть после показа
+  isMemoryContent?: boolean; // Контент, который нужно скрыть после показа
 }
 
 export interface AchievementCheckContext {
@@ -66,7 +69,6 @@ export interface GameState {
 }
 
 // ========== Service Worker Глобальные типы ==========
-// 🔥 Критично для работы sw.ts с TypeScript
 
 declare global {
   interface SyncEvent extends ExtendableEvent {
