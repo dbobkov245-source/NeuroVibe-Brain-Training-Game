@@ -31,6 +31,7 @@ export default function App() {
   const [memoryContent, setMemoryContent] = useState<string | null>(null);
   const [persona, setPersona] = useState<Persona>('demon');
   const [showConfetti, setShowConfetti] = useState(false);
+  const [lastModelResponse, setLastModelResponse] = useState<any>(null);
 
   const apiHistoryRef = useRef<ChatMessage[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +97,10 @@ export default function App() {
     }
   }, [unlockedAchievements]);
 
-  useEffect(() => { const ctx: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: null }; checkAndUnlockAchievements(ctx); }, [xp, gamesPlayed, checkAndUnlockAchievements]);
+  useEffect(() => { 
+    const ctx: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: currentMode, lastModelResponse }; 
+    checkAndUnlockAchievements(ctx); 
+  }, [xp, gamesPlayed, currentMode, lastModelResponse, checkAndUnlockAchievements]);
 
   useEffect(() => {
     if (!quest || quest.completed) return;
@@ -109,41 +113,72 @@ export default function App() {
 
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt = false) => {
     if (!userPrompt.trim()) return;
-    if (!isOnline) { const offlineMessage: ChatMessage = { role: 'model', parts: [{ text: '<strong>Офлайн режим:</strong> Подключитесь к интернету для продолжения игры.' }] }; setChatHistory(prev => [...prev, offlineMessage]); return; }
+    if (!isOnline) { 
+      const offlineMessage: ChatMessage = { 
+        role: 'model', 
+        parts: [{ text: '<strong>Офлайн режим:</strong> Подключитесь к интернету для продолжения игры.' }] 
+      }; 
+      setChatHistory(prev => [...prev, offlineMessage]); 
+      return; 
+    }
     setIsLoading(true); setInput('');
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }], isHidden: isHiddenPrompt };
-    if (!isHiddenPrompt) setChatHistory(prev => [...prev, userMessage]); apiHistoryRef.current.push(userMessage);
+    if (!isHiddenPrompt) setChatHistory(prev => [...prev, userMessage]); 
+    apiHistoryRef.current.push(userMessage);
     try {
       const modelResponse = await generateJsonResponse(apiHistoryRef.current, SYSTEM_INSTRUCTION, persona);
       const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }], isHidden: !!modelResponse.isMemoryContent };
-      apiHistoryRef.current.push(modelMessage); setChatHistory(prev => [...prev, modelMessage]);
+      apiHistoryRef.current.push(modelMessage); 
+      setChatHistory(prev => [...prev, modelMessage]);
       if (modelResponse.isMemoryContent) setMemoryContent(modelResponse.display_html);
-      setXp(prevXp => { const newXp = prevXp + modelResponse.xp_gained; checkAndUnlockAchievements({ xp: newXp, gamesPlayed, lastModelResponse: modelResponse, currentGameMode: currentMode }); return newXp; });
+      setLastModelResponse(modelResponse);
+      setXp(prevXp => { 
+        const newXp = prevXp + modelResponse.xp_gained; 
+        checkAndUnlockAchievements({ xp: newXp, gamesPlayed, lastModelResponse: modelResponse, currentGameMode: currentMode }); 
+        return newXp; 
+      });
     } catch (error) {
       const errorText = error instanceof Error ? error.message : String(error);
       const errorMessage: ChatMessage = { role: 'model', parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }] };
-      setChatHistory(prev => [...prev, errorMessage]); apiHistoryRef.current.push(errorMessage);
-    } finally { setIsLoading(false); }
+      setChatHistory(prev => [...prev, errorMessage]); 
+      apiHistoryRef.current.push(errorMessage);
+    } finally { 
+      setIsLoading(false); 
+    }
   }, [chatHistory, isOnline, gamesPlayed, currentMode, checkAndUnlockAchievements, persona]);
 
   const handleSend = useCallback((e: React.FormEvent) => { e.preventDefault(); if (input.trim() && !isLoading) sendMessage(input, false); }, [input, isLoading, sendMessage]);
 
-  const handleModeSelect = useCallback((mode: GameMode) => { setCurrentMode(mode); setGamesPlayed(prev => prev + 1); const prompts = { words: 'Начни режим Слова', story: 'Начни режим История', associations: 'Начни режим Ассоциации' }; sendMessage(prompts[mode], true); }, [sendMessage]);
+  const handleModeSelect = useCallback((mode: GameMode) => { 
+    setCurrentMode(mode); 
+    setGamesPlayed(prev => prev + 1); 
+    const prompts = { 
+      words: 'Начни режим Слова', 
+      story: 'Начни режим История', 
+      associations: 'Начни режим Ассоциации' 
+    }; 
+    sendMessage(prompts[mode], true); 
+  }, [sendMessage]);
 
   useEffect(() => {
     if (chatHistory.length > 0) return;
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode') as GameMode;
     const sharedText = urlParams.get('text');
-    if (mode && ['words', 'story', 'associations'].includes(mode)) { handleModeSelect(mode); window.history.replaceState({}, document.title, window.location.pathname); }
-    else if (sharedText) { sendMessage(sharedText, false); window.history.replaceState({}, document.title, window.location.pathname); }
+    if (mode && ['words', 'story', 'associations'].includes(mode)) { 
+      handleModeSelect(mode); 
+      window.history.replaceState({}, document.title, window.location.pathname); 
+    } else if (sharedText) { 
+      sendMessage(sharedText, false); 
+      window.history.replaceState({}, document.title, window.location.pathname); 
+    }
   }, [handleModeSelect, sendMessage, chatHistory.length]);
 
   const achievementsCount = useMemo(() => `${unlockedAchievements.size}/${ACHIEVEMENTS.length}`, [unlockedAchievements]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
-      {!isOnline && <div className="bg-yellow-100 text-yellow-800 text-center py-2 px-4 font-medium">Офлайн режим: данные сохранятся локально</div>}
+      {!isOnline && <div className="bg-yellow-100 text-yellow-800 text-center py-2 px-4 font-medium">Офлайн режим: данные сохраняются локально</div>}
       {toastQueue.length > 0 && <AchievementToast key={toastQueue[0].id} achievement={toastQueue[0]} onClose={() => setToastQueue(prev => prev.slice(1))} />}
       {showConfetti && <Confetti />}
       {showPWAPrompt && <PWAPrompt onInstall={handleInstallPWA} onDismiss={dismissPWAPrompt} />}
@@ -212,7 +247,7 @@ export default function App() {
           {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <ModeButton icon={<MessageSquare className="w-5 h-5" />} title="Слова" description="Запомни 7 слов" onClick={() => handleModeSelect('words')} />
-              <ModeButton icon={<BookOpenText className="w-5 h-5" />} title="История" description="Ответь на 3 вопроса" onClick={() => handleModeSelect('story')} />
+              <ModeButton icon={<BookOpenText className="w-5 h-5" />} title="История" description="Ответить на 3 вопроса" onClick={() => handleModeSelect('story')} />
               <ModeButton icon={<Users className="w-5 h-5" />} title="Ассоциации" description="Оцени связь" onClick={() => handleModeSelect('associations')} />
             </div>
           ) : (
