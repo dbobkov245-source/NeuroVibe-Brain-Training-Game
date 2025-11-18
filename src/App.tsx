@@ -36,7 +36,6 @@ export default function App() {
   const offlineStorage = useRef<OfflineStorage | null>(null);
   const { quest, complete } = useDailyQuest();
 
-  // Инициализация IndexedDB (только один раз)
   useEffect(() => {
     offlineStorage.current = new OfflineStorage();
     offlineStorage.current.init().catch((e) => console.warn('OfflineStorage init failed:', e));
@@ -56,7 +55,6 @@ export default function App() {
     };
   }, []);
 
-  // Загрузка состояния
   useEffect(() => {
     const loadState = async () => {
       try {
@@ -64,7 +62,7 @@ export default function App() {
         if (state) {
           setXp(state.xp);
           setGamesPlayed(state.gamesPlayed);
-          setUnlockedAchievements(new Set(state.unlockedAchievements));
+          setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
           setChatHistory(state.chatHistory);
         }
       } catch (e) { 
@@ -74,7 +72,6 @@ export default function App() {
     loadState();
   }, []);
 
-  // Сохранение состояния
   useEffect(() => {
     const saveState = async () => {
       try {
@@ -92,7 +89,6 @@ export default function App() {
     saveState();
   }, [xp, gamesPlayed, unlockedAchievements, chatHistory]);
 
-  // PWA Install Prompt
   useEffect(() => {
     if (!gamesPlayed || localStorage.getItem('pwa-prompt-dismissed')) return;
     
@@ -138,7 +134,6 @@ export default function App() {
     localStorage.setItem('pwa-prompt-dismissed', 'true');
   }, []);
 
-  // Проверка достижений
   const checkAndUnlockAchievements = useCallback((modelResponse: any) => {
     if (!modelResponse?.game_data) return;
     
@@ -165,10 +160,9 @@ export default function App() {
     }
   }, [xp, gamesPlayed, currentMode, unlockedAchievements]);
 
-  // Ежедневный квест
   useEffect(() => {
     if (!quest?.completed && quest?.mode === currentMode) {
-      // Квест отслеживается в sendMessage через checkAndUnlockAchievements
+      // Quest tracking is done in sendMessage
     }
   }, [quest, currentMode, complete]);
 
@@ -179,18 +173,15 @@ export default function App() {
     setInput('');
   }, []);
 
-  // Основная функция отправки сообщения
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt = false) => {
     if (!userPrompt.trim() || isLoading) return;
 
-    // Создаем сообщение пользователя
     const userMessage: ChatMessage = {
       role: 'user',
       parts: [{ text: userPrompt }],
       isHidden: isHiddenPrompt
     };
 
-    // Офлайн режим
     if (!isOnline) {
       const offlineMessage: ChatMessage = {
         role: 'model',
@@ -227,7 +218,6 @@ export default function App() {
       setXp(prev => prev + modelResponse.xp_gained);
       checkAndUnlockAchievements(modelResponse);
       
-      // Проверка ежедневного квеста
       if (quest && !quest.completed && 
           modelResponse.game_data.mode === quest.mode &&
           (modelResponse.game_data.association_score ?? 0) >= quest.minScore) {
@@ -264,7 +254,6 @@ export default function App() {
     sendMessage(prompts[mode], true);
   }, [sendMessage]);
 
-  // Обработка URL параметров
   useEffect(() => {
     if (chatHistory.length > 0) return;
     
