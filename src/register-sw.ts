@@ -1,15 +1,26 @@
 import { Workbox } from 'workbox-window';
 
+const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC;
+
+async function subscribePush(sw: ServiceWorker) {
+  const sub = await sw.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: VAPID_PUBLIC,
+  });
+  // сохраняем подписку в Edge Config (или БД)
+  await fetch('/api/save-sub', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sub),
+  });
+}
+
 if ('serviceWorker' in navigator) {
   const wb = new Workbox('/sw.js');
 
-  wb.addEventListener('installed', (event) => {
-    if (event.isUpdate) {
-      // New content available, show refresh prompt
-      if (confirm('Доступно обновление NeuroVibe! Обновить страницу?')) {
-        window.location.reload();
-      }
-    }
+  wb.addEventListener('activated', async () => {
+    const sw = await wb.messageSkipWaiting();
+    if ('pushManager' in sw) await subscribePush(sw);
   });
 
   wb.register();
