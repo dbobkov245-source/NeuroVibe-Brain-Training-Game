@@ -63,11 +63,12 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'DARK_PHILOSOPHER',
     name: 'Тёмный Философ',
-    description: 'В режиме ассоциаций найдите связь между жизнью и смертью (5+ раз).',
+    description: 'В режиме ассоциаций найдите глубокую связь (10/10).',
     icon: Brain,
-    check: ({ lastModelResponse }) => {
-      if (!lastModelResponse) return false;
-      return lastModelResponse.xp_gained >= 10 && Math.random() > 0.8; // Случайный триггер для веселья
+    check: ({ lastModelResponse, currentGameMode }) => {
+      if (!lastModelResponse || currentGameMode !== 'associations') return false;
+      const { association_score } = lastModelResponse.game_data;
+      return association_score === 10;
     },
   },
 ];
