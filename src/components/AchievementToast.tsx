@@ -10,7 +10,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 4000); // Display for 4 seconds
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onClose]);
@@ -31,7 +31,6 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           <p className="text-gray-600">{achievement.name}</p>
         </div>
       </div>
-      {/* FIX: Added style block for the fade-in-down animation which was missing. */}
       <style>{`
         @keyframes fade-in-down {
           0% { opacity: 0; transform: translate(-50%, -20px); }
