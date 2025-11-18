@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing'; // ✅ Исправлено: 'work-box-routing' → 'workbox-routing'
+import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate } from 'workbox-strategies';
 
 precacheAndRoute(self.__WB_MANIFEST);
@@ -16,7 +16,7 @@ self.addEventListener('push', (e) => {
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: 'daily-quest',
-      actions: [{ action: 'open', title: 'Играть' }],
+      actions: [{ action: 'open', title: 'Играть' }], // ✅ Добавлена } перед ]
     })
   );
 });
