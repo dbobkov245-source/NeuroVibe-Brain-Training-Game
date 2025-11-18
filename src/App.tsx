@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChatMessage, GameMode, AchievementId, Achievement, AchievementCheckContext, Persona } from './types';
-import { SYSTEM_INSTRUCTION } from './constants';
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
 import { OfflineStorage } from './offlineStorage';
@@ -43,10 +42,17 @@ export default function App() {
   }, [chatHistory, memoryContent]);
 
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); offlineStorage.current.sync().catch(console.error); };
+    const handleOnline = () => { 
+      setIsOnline(true); 
+      offlineStorage.current.sync().catch(console.error); 
+    };
     const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline); window.addEventListener('offline', handleOffline);
-    return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); };
+    window.addEventListener('online', handleOnline); 
+    window.addEventListener('offline', handleOffline);
+    return () => { 
+      window.removeEventListener('online', handleOnline); 
+      window.removeEventListener('offline', handleOffline); 
+    };
   }, []);
 
   useEffect(() => {
@@ -54,9 +60,11 @@ export default function App() {
       try {
         const state = await offlineStorage.current.getGameState();
         if (state) {
-          setXp(state.xp); setGamesPlayed(state.gamesPlayed);
+          setXp(state.xp); 
+          setGamesPlayed(state.gamesPlayed);
           setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
-          setChatHistory(state.chatHistory); apiHistoryRef.current = state.chatHistory.filter((m: ChatMessage) => !m.isHidden);
+          setChatHistory(state.chatHistory); 
+          apiHistoryRef.current = state.chatHistory.filter((m: ChatMessage) => !m.isHidden);
         }
       } catch (e) { console.error(e); }
     };
@@ -66,7 +74,13 @@ export default function App() {
   useEffect(() => {
     const saveState = async () => {
       try {
-        await offlineStorage.current.saveGameState({ xp, gamesPlayed, unlockedAchievements: Array.from(unlockedAchievements), chatHistory, lastSaved: Date.now() });
+        await offlineStorage.current.saveGameState({ 
+          xp, 
+          gamesPlayed, 
+          unlockedAchievements: Array.from(unlockedAchievements), 
+          chatHistory, 
+          lastSaved: Date.now() 
+        });
       } catch (e) { console.error(e); }
     };
     saveState();
@@ -74,42 +88,74 @@ export default function App() {
 
   useEffect(() => {
     let isMounted = true;
-    const handler = (e: Event) => { e.preventDefault(); if (isMounted) setDeferredPrompt(e); setTimeout(() => { if (isMounted && gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) setShowPWAPrompt(true); }, 3000); };
+    const handler = (e: Event) => { 
+      e.preventDefault(); 
+      if (isMounted) setDeferredPrompt(e); 
+      setTimeout(() => { 
+        if (isMounted && gamesPlayed > 0 && !localStorage.getItem('pwa-prompt-dismissed')) 
+          setShowPWAPrompt(true); 
+      }, 3000); 
+    };
     window.addEventListener('beforeinstallprompt', handler);
     return () => { isMounted = false; window.removeEventListener('beforeinstallprompt', handler); };
   }, [gamesPlayed]);
 
   const handleInstallPWA = useCallback(async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') console.log('PWA installed');
-    setDeferredPrompt(null); setShowPWAPrompt(false); localStorage.setItem('pwa-prompt-dismissed', 'true');
+    deferredPrompt.prompt(); 
+    const { outcome } = await deferredPrompt.userChoice; 
+    if (outcome === 'accepted') console.log('PWA installed');
+    setDeferredPrompt(null); 
+    setShowPWAPrompt(false); 
+    localStorage.setItem('pwa-prompt-dismissed', 'true');
   }, [deferredPrompt]);
 
-  const dismissPWAPrompt = useCallback(() => { setShowPWAPrompt(false); localStorage.setItem('pwa-prompt-dismissed', 'true'); }, []);
+  const dismissPWAPrompt = useCallback(() => { 
+    setShowPWAPrompt(false); 
+    localStorage.setItem('pwa-prompt-dismissed', 'true'); 
+  }, []);
 
   const checkAndUnlockAchievements = useCallback((ctx: AchievementCheckContext) => {
     const newUnlocks: Achievement[] = [];
-    ACHIEVEMENTS.forEach(a => { if (!unlockedAchievements.has(a.id) && a.check(ctx)) newUnlocks.push(a); });
+    ACHIEVEMENTS.forEach(a => { 
+      if (!unlockedAchievements.has(a.id) && a.check(ctx)) 
+        newUnlocks.push(a); 
+    });
     if (newUnlocks.length) {
-      setUnlockedAchievements(prev => { const s = new Set(prev); newUnlocks.forEach(a => s.add(a.id)); return s; });
+      setUnlockedAchievements(prev => { 
+        const s = new Set(prev); 
+        newUnlocks.forEach(a => s.add(a.id)); 
+        return s; 
+      });
       setToastQueue(prev => [...prev, ...newUnlocks]);
-      setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000);
+      setShowConfetti(true); 
+      setTimeout(() => setShowConfetti(false), 3000);
     }
   }, [unlockedAchievements]);
 
   useEffect(() => { 
-    const ctx: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: currentMode, lastModelResponse }; 
-    checkAndUnlockAchievements(ctx); 
+    if (lastModelResponse) {
+      const ctx: AchievementCheckContext = { xp, gamesPlayed, lastModelResponse, currentGameMode: currentMode }; 
+      checkAndUnlockAchievements(ctx); 
+    }
   }, [xp, gamesPlayed, currentMode, lastModelResponse, checkAndUnlockAchievements]);
 
   useEffect(() => {
     if (!quest || quest.completed) return;
-    if (lastModelResponse?.game_data.mode === quest.mode && (lastModelResponse.association_score ?? 0) >= quest.minScore) {
-      complete(); setXp(x => x + (quest?.xp ?? 0));
+    if (lastModelResponse?.game_data.mode === quest.mode && 
+        (lastModelResponse.association_score ?? 0) >= quest.minScore) {
+      complete(); 
+      setXp(x => x + (quest?.xp ?? 0));
     }
   }, [lastModelResponse, quest, complete]);
 
-  const resetGame = useCallback(() => { setChatHistory([]); setCurrentMode(null); setMemoryContent(null); setInput(''); apiHistoryRef.current = []; }, []);
+  const resetGame = useCallback(() => { 
+    setChatHistory([]); 
+    setCurrentMode(null); 
+    setMemoryContent(null); 
+    setInput(''); 
+    apiHistoryRef.current = []; 
+  }, []);
 
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt = false) => {
     if (!userPrompt.trim()) return;
@@ -118,36 +164,53 @@ export default function App() {
         role: 'model', 
         parts: [{ text: '<strong>Офлайн режим:</strong> Подключитесь к интернету для продолжения игры.' }] 
       }; 
-      setChatHistory(prev => [...prev, offlineMessage]); 
+      setChatHistory(prev => [...prev, userMessage, offlineMessage]); 
       return; 
     }
-    setIsLoading(true); setInput('');
-    const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }], isHidden: isHiddenPrompt };
+    setIsLoading(true); 
+    setInput('');
+    
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      parts: [{ text: userPrompt }], 
+      isHidden: isHiddenPrompt 
+    };
+    
     if (!isHiddenPrompt) setChatHistory(prev => [...prev, userMessage]); 
     apiHistoryRef.current.push(userMessage);
+    
     try {
-      const modelResponse = await generateJsonResponse(apiHistoryRef.current, SYSTEM_INSTRUCTION, persona);
-      const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }], isHidden: !!modelResponse.isMemoryContent };
+      const modelResponse = await generateJsonResponse(apiHistoryRef.current, persona);
+      const modelMessage: ChatMessage = { 
+        role: 'model', 
+        parts: [{ text: modelResponse.display_html }], 
+        isHidden: !!modelResponse.isMemoryContent 
+      };
+      
       apiHistoryRef.current.push(modelMessage); 
       setChatHistory(prev => [...prev, modelMessage]);
+      
       if (modelResponse.isMemoryContent) setMemoryContent(modelResponse.display_html);
+      
       setLastModelResponse(modelResponse);
-      setXp(prevXp => { 
-        const newXp = prevXp + modelResponse.xp_gained; 
-        checkAndUnlockAchievements({ xp: newXp, gamesPlayed, lastModelResponse: modelResponse, currentGameMode: currentMode }); 
-        return newXp; 
-      });
+      setXp(prevXp => prevXp + modelResponse.xp_gained);
     } catch (error) {
       const errorText = error instanceof Error ? error.message : String(error);
-      const errorMessage: ChatMessage = { role: 'model', parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }] };
+      const errorMessage: ChatMessage = { 
+        role: 'model', 
+        parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }] 
+      };
       setChatHistory(prev => [...prev, errorMessage]); 
       apiHistoryRef.current.push(errorMessage);
     } finally { 
       setIsLoading(false); 
     }
-  }, [chatHistory, isOnline, gamesPlayed, currentMode, checkAndUnlockAchievements, persona]);
+  }, [isOnline, persona]);
 
-  const handleSend = useCallback((e: React.FormEvent) => { e.preventDefault(); if (input.trim() && !isLoading) sendMessage(input, false); }, [input, isLoading, sendMessage]);
+  const handleSend = useCallback((e: React.FormEvent) => { 
+    e.preventDefault(); 
+    if (input.trim() && !isLoading) sendMessage(input, false); 
+  }, [input, isLoading, sendMessage]);
 
   const handleModeSelect = useCallback((mode: GameMode) => { 
     setCurrentMode(mode); 
