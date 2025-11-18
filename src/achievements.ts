@@ -25,7 +25,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   },
   {
     id: 'ASSOCIATION_ACE',
-    name: 'Ас Ассоциаций',
+    name: 'Асс Ассоциаций',
     description: 'Получите оценку 8/10 или выше в режиме "Ассоциации".',
     icon: Users,
     check: ({ lastModelResponse, currentGameMode }) => {
@@ -48,7 +48,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: Trophy,
     check: ({ gamesPlayed }) => gamesPlayed >= 5,
   },
-  // 🆕 Новые достижения
+  // Новые достижения
   {
     id: 'SARCASM_KING',
     name: 'Король Сарказма',
