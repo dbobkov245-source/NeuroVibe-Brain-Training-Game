@@ -25,7 +25,7 @@ export default function App() {
   const [gamesPlayed, setGamesPlayed] = useState<number>(0);
   const [showAchievementsPanel, setShowAchievementsPanel] = useState<boolean>(false);
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
-  const [memoryContent, setMemoryContent] = useState<string | null>(null); // 🆕 Текущий вопрос для запоминания
+  const [memoryContent, setMemoryContent] = useState<string | null>(null);
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
@@ -168,7 +168,6 @@ export default function App() {
     try {
       const modelResponse = await generateJsonResponse(updatedHistoryForApi, SYSTEM_INSTRUCTION);
       
-      // 🆕 Если это контент для памяти, показываем в карточке
       if (modelResponse.isMemoryContent) {
         setMemoryContent(modelResponse.display_html);
       } else {
@@ -297,7 +296,7 @@ export default function App() {
       </header>
       <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4">
         <div className="max-w-3xl mx-auto space-y-4">
-          {/* 🆕 Карточка памяти */}
+          {/* Карточка памяти */}
           {memoryContent && (
             <MemoryCard 
               content={memoryContent}
@@ -333,7 +332,8 @@ export default function App() {
       </main>
       <footer className="sticky bottom-0 z-10 w-full bg-white/80 backdrop-blur-md p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="max-w-3xl mx-auto">
-          {chatHistory.length === 0 && !isLoading && !memoryContent ? (
+          {/* 🆕 ИСПРАВЛЕНО: Добавлена проверка !currentMode */}
+          {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <ModeButton 
                 icon={<MessageSquare className="w-5 h-5" />} 
