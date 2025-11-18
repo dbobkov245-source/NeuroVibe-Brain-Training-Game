@@ -4,11 +4,12 @@ import { SYSTEM_INSTRUCTION } from './constants';
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
 import { OfflineStorage } from './offlineStorage';
-import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy } from './components/Icons';
+import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy, ArrowLeft } from './components/Icons';
 import { ModeButton } from './components/ModeButton';
 import { AchievementToast } from './components/AchievementToast';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { PWAPrompt } from './components/PWAPrompt';
+import { MemoryCard } from './components/MemoryCard';
 
 export default function App() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -24,6 +25,7 @@ export default function App() {
   const [gamesPlayed, setGamesPlayed] = useState<number>(0);
   const [showAchievementsPanel, setShowAchievementsPanel] = useState<boolean>(false);
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
+  const [memoryContent, setMemoryContent] = useState<string | null>(null); // 🆕 Текущий вопрос для запоминания
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
@@ -32,7 +34,7 @@ export default function App() {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [chatHistory]);
+  }, [chatHistory, memoryContent]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -139,6 +141,13 @@ export default function App() {
     checkAndUnlockAchievements(context);
   }, [xp, gamesPlayed, checkAndUnlockAchievements]);
 
+  const resetGame = useCallback(() => {
+    setChatHistory([]);
+    setCurrentMode(null);
+    setMemoryContent(null);
+    setInput('');
+  }, []);
+
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
     if (!userPrompt.trim()) return;
     if (!isOnline) {
@@ -151,14 +160,26 @@ export default function App() {
     }
     setIsLoading(true);
     setInput('');
+    
     const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
     const updatedHistoryForApi = [...chatHistory, userMessage];
-    if (!isHiddenPrompt) setChatHistory(updatedHistoryForApi);
+    if (!isHiddenPrompt) setChatHistory(prev => [...prev, userMessage]);
 
     try {
       const modelResponse = await generateJsonResponse(updatedHistoryForApi, SYSTEM_INSTRUCTION);
-      const modelMessage: ChatMessage = { role: 'model', parts: [{ text: modelResponse.display_html }] };
-      setChatHistory(prev => [...prev, modelMessage]);
+      
+      // 🆕 Если это контент для памяти, показываем в карточке
+      if (modelResponse.isMemoryContent) {
+        setMemoryContent(modelResponse.display_html);
+      } else {
+        const modelMessage: ChatMessage = { 
+          role: 'model', 
+          parts: [{ text: modelResponse.display_html }],
+          isHidden: false 
+        };
+        setChatHistory(prev => [...prev, modelMessage]);
+      }
+      
       setXp(prevXp => {
         const newXp = prevXp + modelResponse.xp_gained;
         checkAndUnlockAchievements({
@@ -244,6 +265,15 @@ export default function App() {
       <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
+            {chatHistory.length > 0 && (
+              <button 
+                onClick={resetGame}
+                className="p-2 text-gray-500 hover:text-violet-600 transition-colors"
+                aria-label="Вернуться на главную"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+            )}
             <BrainCircuit className="w-7 h-7 text-violet-600" />
             <h1 className="text-2xl font-bold text-gray-800">NeuroVibe</h1>
           </div>
@@ -267,7 +297,17 @@ export default function App() {
       </header>
       <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4">
         <div className="max-w-3xl mx-auto space-y-4">
+          {/* 🆕 Карточка памяти */}
+          {memoryContent && (
+            <MemoryCard 
+              content={memoryContent}
+              onReady={() => setMemoryContent(null)}
+            />
+          )}
+          
+          {/* История чата (без скрытых сообщений) */}
           {chatHistory.map((msg, index) => {
+            if (msg.isHidden) return null;
             const isUser = msg.role === 'user';
             const bubbleClasses = `p-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%]`;
             const userClasses = `${bubbleClasses} bg-violet-600 text-white rounded-br-lg`;
@@ -293,7 +333,7 @@ export default function App() {
       </main>
       <footer className="sticky bottom-0 z-10 w-full bg-white/80 backdrop-blur-md p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="max-w-3xl mx-auto">
-          {chatHistory.length === 0 && !isLoading ? (
+          {chatHistory.length === 0 && !isLoading && !memoryContent ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <ModeButton 
                 icon={<MessageSquare className="w-5 h-5" />} 
@@ -321,14 +361,14 @@ export default function App() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ваш ответ..."
-                disabled={isLoading || !isOnline}
+                disabled={isLoading || !isOnline || !!memoryContent}
                 className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
                 aria-label="Поле для ввода ответа"
                 autoComplete="off"
               />
               <button
                 type="submit"
-                disabled={isLoading || !input.trim() || !isOnline}
+                disabled={isLoading || !input.trim() || !isOnline || !!memoryContent}
                 className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]"
                 aria-label={isLoading ? "Отправка..." : "Отправить"}
               >
