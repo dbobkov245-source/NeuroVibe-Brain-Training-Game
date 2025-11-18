@@ -7,13 +7,10 @@ import { ExpirationPlugin } from 'workbox-expiration';
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Прекешируем всё, что собрал Vite
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-// Очистка старых кешей
 cleanupOutdatedCaches();
 
-// Кеширование Google Fonts
 registerRoute(
   /^https:\/\/fonts\.googleapis\.com/,
   new CacheFirst({
@@ -34,19 +31,19 @@ registerRoute(
   })
 );
 
-// Оффлайн fallback
 registerRoute(
   ({ request }) => request.mode === 'navigate',
   async () => {
     try {
       return await fetch('/offline.html');
     } catch {
-      return caches.match('/offline.html')!;
+      const cache = await caches.open('workbox-precache');
+      const response = await cache.match('/offline.html');
+      return response || new Response('Offline content not available', { status: 503 });
     }
   }
 );
 
-// Остальные ресурсы — StaleWhileRevalidate
 registerRoute(
   /\.(?:png|jpg|jpeg|svg|ico|woff2?)$/,
   new StaleWhileRevalidate({
