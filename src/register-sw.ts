@@ -1,6 +1,9 @@
 import { Workbox } from 'workbox-window';
 
-const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC;
+// ✅ Правильный тип для Vite
+declare const VITE_VAPID_PUBLIC: string;
+
+const VAPID_PUBLIC = (import.meta as any).env?.VITE_VAPID_PUBLIC || VITE_VAPID_PUBLIC;
 
 async function subscribePush(sw: ServiceWorker) {
   const sub = await sw.pushManager.subscribe({
@@ -19,8 +22,10 @@ if ('serviceWorker' in navigator) {
   const wb = new Workbox('/sw.js');
 
   wb.addEventListener('activated', async () => {
-    const sw = await wb.messageSkipWaiting();
-    if ('pushManager' in sw) await subscribePush(sw);
+    const sw = await wb.getSW(); // ✅ Исправлено: getSW() возвращает ServiceWorker
+    if ('pushManager' in sw) {
+      await subscribePush(sw);
+    }
   });
 
   wb.register();
