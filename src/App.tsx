@@ -27,6 +27,8 @@ export default function App() {
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   const [memoryContent, setMemoryContent] = useState<string | null>(null);
   
+  // 🆕 Отдельная история для API (включает скрытые сообщения)
+  const apiHistoryRef = useRef<ChatMessage[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
 
@@ -59,7 +61,9 @@ export default function App() {
           setXp(state.xp);
           setGamesPlayed(state.gamesPlayed);
           setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
-          if (state.chatHistory.length > 0) setChatHistory(state.chatHistory);
+          setChatHistory(state.chatHistory);
+          // 🆕 Восстанавливаем API историю
+          apiHistoryRef.current = state.chatHistory.filter(msg => !msg.isHidden);
         }
       } catch (error) {
         console.error('Failed to load game state:', error);
@@ -146,6 +150,7 @@ export default function App() {
     setCurrentMode(null);
     setMemoryContent(null);
     setInput('');
+    apiHistoryRef.current = []; // 🆕 Очищаем API историю
   }, []);
 
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
@@ -158,25 +163,45 @@ export default function App() {
       setChatHistory(prev => [...prev, offlineMessage]);
       return;
     }
+    
     setIsLoading(true);
     setInput('');
     
-    const userMessage: ChatMessage = { role: 'user', parts: [{ text: userPrompt }] };
-    const updatedHistoryForApi = [...chatHistory, userMessage];
-    if (!isHiddenPrompt) setChatHistory(prev => [...prev, userMessage]);
-
+    // Создаем сообщение пользователя
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      parts: [{ text: userPrompt }],
+      isHidden: isHiddenPrompt
+    };
+    
+    // Добавляем в UI историю только если не скрыто
+    if (!isHiddenPrompt) {
+      setChatHistory(prev => [...prev, userMessage]);
+    }
+    
+    // 🆕 Всегда добавляем в API историю
+    apiHistoryRef.current.push(userMessage);
+    
     try {
-      const modelResponse = await generateJsonResponse(updatedHistoryForApi, SYSTEM_INSTRUCTION);
+      // 🆕 Отправляем полную историю API
+      const modelResponse = await generateJsonResponse(apiHistoryRef.current, SYSTEM_INSTRUCTION);
       
+      // Создаем сообщение модели
+      const modelMessage: ChatMessage = { 
+        role: 'model', 
+        parts: [{ text: modelResponse.display_html }],
+        isHidden: !!modelResponse.isMemoryContent
+      };
+      
+      // 🆕 Всегда добавляем в API историю
+      apiHistoryRef.current.push(modelMessage);
+      
+      // Добавляем в UI историю
+      setChatHistory(prev => [...prev, modelMessage]);
+      
+      // Показываем карточку памяти если нужно
       if (modelResponse.isMemoryContent) {
         setMemoryContent(modelResponse.display_html);
-      } else {
-        const modelMessage: ChatMessage = { 
-          role: 'model', 
-          parts: [{ text: modelResponse.display_html }],
-          isHidden: false 
-        };
-        setChatHistory(prev => [...prev, modelMessage]);
       }
       
       setXp(prevXp => {
@@ -196,10 +221,11 @@ export default function App() {
         parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }]
       };
       setChatHistory(prev => [...prev, errorMessage]);
+      apiHistoryRef.current.push(errorMessage); // 🆕 Добавляем в API историю
     } finally {
       setIsLoading(false);
     }
-  }, [chatHistory, isOnline, gamesPlayed, currentMode, checkAndUnlockAchievements]);
+  }, [isOnline, gamesPlayed, currentMode, checkAndUnlockAchievements]);
 
   const handleSend = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -304,7 +330,7 @@ export default function App() {
             />
           )}
           
-          {/* История чата (без скрытых сообщений) */}
+          {/* История чата (фильтруем скрытые) */}
           {chatHistory.map((msg, index) => {
             if (msg.isHidden) return null;
             const isUser = msg.role === 'user';
@@ -332,7 +358,7 @@ export default function App() {
       </main>
       <footer className="sticky bottom-0 z-10 w-full bg-white/80 backdrop-blur-md p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="max-w-3xl mx-auto">
-          {/* 🆕 ИСПРАВЛЕНО: Добавлена проверка !currentMode */}
+          {/* ИСПРАВЛЕНО: Добавлена проверка !currentMode */}
           {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <ModeButton 
@@ -380,4 +406,4 @@ export default function App() {
       </footer>
     </div>
   );
-}
+                    }
