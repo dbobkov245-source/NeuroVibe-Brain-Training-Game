@@ -1,8 +1,11 @@
 import { Workbox } from 'workbox-window';
 
-// Регистрация Service Worker для PWA
+// src/register-sw.ts
 if ('serviceWorker' in navigator) {
-  const wb = new Workbox('/sw.js');
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 
   // Событие активации SW
   wb.addEventListener('activated', (event) => {
