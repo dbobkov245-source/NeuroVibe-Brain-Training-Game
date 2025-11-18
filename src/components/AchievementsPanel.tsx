@@ -42,7 +42,6 @@ export const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ isOpen, on
           })}
         </div>
       </div>
-      {/* FIX: Added style block for the fade-in-up animation which was missing. */}
       <style>{`
         @keyframes fade-in-up {
           0% { opacity: 0; transform: translateY(20px); }
