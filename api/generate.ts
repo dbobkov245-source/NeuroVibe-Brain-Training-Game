@@ -1,50 +1,49 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from "@google/genai";
-import { ChatMessage } from '../src/types';
+import { GoogleGenAI } from '@google/genai';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async (req: VercelRequest, res: VercelResponse) => {
+  // 1. Проверяем метод
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  // 2. Проверяем наличие ключа
   const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    console.error('API_KEY is not set in environment variables.');
-    return res.status(500).json({ error: 'Ключ API не настроен на сервере.' });
-  }
+  if (!apiKey) return res.status(500).json({ error: 'API_KEY not configured' });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  // 3. Валидируем тело
+  const { history, systemInstruction, generationConfig } = req.body;
+  if (!Array.isArray(history) || !systemInstruction?.text) {
+    return res.status(400).json({ error: 'Invalid body: history и systemInstruction обязательны' });
   }
 
   try {
-    const { history, systemInstruction } = req.body as { history: ChatMessage[], systemInstruction: { text: string } };
-
-    if (!history || !systemInstruction) {
-        return res.status(400).json({ error: 'Неверное тело запроса: требуются history и systemInstruction.' });
-    }
-    
     const ai = new GoogleGenAI({ apiKey });
-    
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: history,
-        config: {
-            systemInstruction: systemInstruction.text,
-            responseMimeType: "application/json",
-        }
+
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: history,
+      config: {
+        systemInstruction: systemInstruction.text,
+        responseMimeType: 'application/json',
+        ...generationConfig, // temperature, topP и т.д.
+      },
     });
 
-    const jsonText = response.text;
-    
-    if (!jsonText) {
-        return res.status(500).json({ error: 'Пустой ответ от модели' });
-    }
-    
-    const parsedData = JSON.parse(jsonText);
-    return res.status(200).json(parsedData);
+    const raw = result.text;
+    if (!raw) return res.status(502).json({ error: 'Пустой ответ от модели' });
 
-  } catch (error) {
-    console.error('Error in Vercel Function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка';
-    
-    // Return JSON error for better handling on client
-    return res.status(500).json({ error: `Внутренняя ошибка сервера: ${errorMessage}` });
+    // 4. Проверяем, что это JSON
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); } catch {
+      return res.status(502).json({ error: 'Модель вернула не JSON' });
+    }
+
+    return res.status(200).json(parsed);
+
+  } catch (err: any) {
+    // 5. Обрабатываем ошибки GoogleGenAI
+    if (err?.code === 429) return res.status(429).json({ error: 'Превышен лимит запросов' });
+    if (err?.code === 401) return res.status(401).json({ error: 'Неверный API-ключ' });
+    console.error('Gemini error:', err);
+    return res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
-}
+};
