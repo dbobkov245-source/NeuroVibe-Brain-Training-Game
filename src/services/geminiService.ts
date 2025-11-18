@@ -20,7 +20,7 @@ export async function generateJsonResponse(
   ].join('\n\n').trim();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // Увеличен таймаут
 
   try {
     const response = await fetch('/api/generate', {
@@ -39,20 +39,21 @@ export async function generateJsonResponse(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new GeminiServiceError(
-        errorData.error || `HTTP ${response.status}`,
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
         response.status
       );
     }
 
     const data = await response.json();
 
+    // Валидация ответа
     if (
       typeof data?.display_html !== 'string' ||
       typeof data?.xp_gained !== 'number' ||
       !data?.game_data?.mode
     ) {
-      console.error('Некорректный ответ от модели:', data);
-      throw new GeminiServiceError('Модель вернула невалидный JSON');
+      console.error('Invalid response structure:', data);
+      throw new GeminiServiceError('Invalid response structure from AI');
     }
 
     return data as ModelResponseData;
@@ -60,13 +61,14 @@ export async function generateJsonResponse(
     clearTimeout(timeoutId);
 
     if (err.name === 'AbortError') {
-      throw new GeminiServiceError('Превышено время ожидания (10 сек)', 504);
+      throw new GeminiServiceError('Request timed out after 15 seconds', 504);
     }
 
     if (err instanceof GeminiServiceError) throw err;
 
     throw new GeminiServiceError(
-      err.message || 'Неизвестная ошибка сети'
+      err.message || 'Network error occurred',
+      err.statusCode || 500
     );
   }
 }
