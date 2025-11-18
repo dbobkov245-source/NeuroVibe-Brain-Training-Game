@@ -27,7 +27,7 @@ export default function App() {
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   const [memoryContent, setMemoryContent] = useState<string | null>(null);
   
-  // 🆕 Отдельная история для API (включает скрытые сообщения)
+  // Отдельная история для API (включает скрытые сообщения)
   const apiHistoryRef = useRef<ChatMessage[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const offlineStorage = useRef<OfflineStorage>(new OfflineStorage());
@@ -62,7 +62,7 @@ export default function App() {
           setGamesPlayed(state.gamesPlayed);
           setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
           setChatHistory(state.chatHistory);
-          // 🆕 Восстанавливаем API историю
+          // Восстанавливаем API историю
           apiHistoryRef.current = state.chatHistory.filter(msg => !msg.isHidden);
         }
       } catch (error) {
@@ -141,16 +141,16 @@ export default function App() {
   }, [unlockedAchievements]);
 
   useEffect(() => {
-    const context: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: null };
+    const context: AchievementCheckContext = { xp, gamesPlayed, currentGameMode: currentMode };
     checkAndUnlockAchievements(context);
-  }, [xp, gamesPlayed, checkAndUnlockAchievements]);
+  }, [xp, gamesPlayed, currentMode, checkAndUnlockAchievements]);
 
   const resetGame = useCallback(() => {
     setChatHistory([]);
     setCurrentMode(null);
     setMemoryContent(null);
     setInput('');
-    apiHistoryRef.current = []; // 🆕 Очищаем API историю
+    apiHistoryRef.current = []; // Очищаем API историю
   }, []);
 
   const sendMessage = useCallback(async (userPrompt: string, isHiddenPrompt: boolean = false) => {
@@ -179,11 +179,11 @@ export default function App() {
       setChatHistory(prev => [...prev, userMessage]);
     }
     
-    // 🆕 Всегда добавляем в API историю
+    // Всегда добавляем в API историю
     apiHistoryRef.current.push(userMessage);
     
     try {
-      // 🆕 Отправляем полную историю API
+      // Отправляем полную историю API
       const modelResponse = await generateJsonResponse(apiHistoryRef.current, SYSTEM_INSTRUCTION);
       
       // Создаем сообщение модели
@@ -193,7 +193,7 @@ export default function App() {
         isHidden: !!modelResponse.isMemoryContent
       };
       
-      // 🆕 Всегда добавляем в API историю
+      // Всегда добавляем в API историю
       apiHistoryRef.current.push(modelMessage);
       
       // Добавляем в UI историю
@@ -221,7 +221,7 @@ export default function App() {
         parts: [{ text: `<strong>Ошибка:</strong> ${errorText}` }]
       };
       setChatHistory(prev => [...prev, errorMessage]);
-      apiHistoryRef.current.push(errorMessage); // 🆕 Добавляем в API историю
+      apiHistoryRef.current.push(errorMessage); // Добавляем в API историю
     } finally {
       setIsLoading(false);
     }
@@ -406,4 +406,4 @@ export default function App() {
       </footer>
     </div>
   );
-                    }
+}
