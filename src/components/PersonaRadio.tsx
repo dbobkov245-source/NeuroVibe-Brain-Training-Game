@@ -2,9 +2,9 @@ import React from 'react';
 import { Persona } from '../types';
 
 const personas = [
-  { id: 'demon', name: 'Саркастичный Демон', emoji: '😈' },
-  { id: 'cyborg', name: 'Научный Киборг', emoji: '🤖' },
-  { id: 'grandpa', name: 'Добрый Дед', emoji: '👴🏻' },
+  { id: 'demon' as const, name: 'Саркастичный Демон', emoji: '😈' },
+  { id: 'cyborg' as const, name: 'Научный Киборг', emoji: '🤖' },
+  { id: 'grandpa' as const, name: 'Добрый Дед', emoji: '👴🏻' },
 ];
 
 export const PersonaRadio = ({ value, onChange }: { value: Persona; onChange: (p: Persona) => void }) => (
@@ -15,7 +15,7 @@ export const PersonaRadio = ({ value, onChange }: { value: Persona; onChange: (p
           type="radio"
           name="persona"
           checked={value === p.id}
-          onChange={() => onChange(p.id as Persona)} // ← cast к типу
+          onChange={() => onChange(p.id)} // ✅ Убран cast, используем 'as const'
           className="sr-only"
         />
         <div
