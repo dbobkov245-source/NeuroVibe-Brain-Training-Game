@@ -2,52 +2,71 @@
 import { ChatMessage, ModelResponseData, Persona } from '../types';
 import { GENERATION_CONFIG, PERSONA_PROMPTS, FEW_SHOT_EXAMPLES, SYSTEM_INSTRUCTION } from '../constants';
 
+export class GeminiServiceError extends Error {
+  constructor(message: string, public statusCode?: number) {
+    super(message);
+    this.name = 'GeminiServiceError';
+  }
+}
+
 export async function generateJsonResponse(
   history: ChatMessage[],
   persona: Persona = 'demon'
 ): Promise<ModelResponseData> {
-  const fullSystem = `
-${PERSONA_PROMPTS[persona]}
-
-${FEW_SHOT_EXAMPLES}
-
-${SYSTEM_INSTRUCTION.text}
-`.trim();
+  const fullSystemPrompt = [
+    PERSONA_PROMPTS[persona],
+    FEW_SHOT_EXAMPLES,
+    SYSTEM_INSTRUCTION.text
+  ].join('\n\n').trim();
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 28000);
+  const timeoutId = setTimeout(() => controller.abort(), 29000);
 
   try {
-    const res = await fetch('/api/generate', {
+    const response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         history,
-        system: { text: fullSystem },
+        system: { text: fullSystemPrompt },
         generationConfig: GENERATION_CONFIG,
       }),
       signal: controller.signal,
     });
 
-    clearTimeout(timeout);
+    clearTimeout(timeoutId);
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Server error');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new GeminiServiceError(
+        errorData.error || `HTTP ${response.status}`,
+        response.status
+      );
     }
 
-    const data = await res.json();
+    const data = await response.json();
 
-    // Валидация
-    if (!data?.display_html || typeof data?.xp_gained !== 'number' || !data?.game_data?.mode) {
-      throw new Error('Некорректный ответ модели');
+    if (
+      typeof data?.display_html !== 'string' ||
+      typeof data?.xp_gained !== 'number' ||
+      !data?.game_data?.mode
+    ) {
+      console.error('Некорректный ответ от модели:', data);
+      throw new GeminiServiceError('Модель вернула невалидный JSON');
     }
 
     return data as ModelResponseData;
   } catch (err: any) {
-    if (err.name === 'AbortError) {
-      throw new Error('Таймаут запроса к Gemini');
+    clearTimeout(timeoutId);
+
+    if (err.name === 'AbortError') {
+      throw new GeminiServiceError('Превышено время ожидания (29 сек)', 504);
     }
-    throw err instanceof Error ? err : new Error('Неизвестная ошибка');
+
+    if (err instanceof GeminiServiceError) throw err;
+
+    throw new GeminiServiceError(
+      err.message || 'Неизвестная ошибка сети'
+    );
   }
 }
