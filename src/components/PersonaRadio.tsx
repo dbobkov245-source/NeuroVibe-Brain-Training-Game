@@ -1,4 +1,3 @@
-import React from 'react';
 import { Persona } from '../types';
 
 const personas = [
@@ -15,7 +14,7 @@ export const PersonaRadio = ({ value, onChange }: { value: Persona; onChange: (p
           type="radio"
           name="persona"
           checked={value === p.id}
-          onChange={() => onChange(p.id)} // ✅ Убран cast, используем 'as const'
+          onChange={() => onChange(p.id)}
           className="sr-only"
         />
         <div
