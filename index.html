@@ -19,19 +19,7 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- CSP (можно оставить, но лучше вынести в заголовки Vercel) -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: https:;
-      connect-src 'self' https://generativelanguage.googleapis.com;
-      worker-src 'self' blob:;
-      manifest-src 'self';
-    ">
-
-    <!-- Preconnect -->
+    <!-- Preconnect (убраны пробелы в конце URL) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
