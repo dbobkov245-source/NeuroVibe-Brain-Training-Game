@@ -1,9 +1,13 @@
+# Удалите старый файл
+rm package.json
+
+# Создайте новый и скопируйте в него содержимое
+cat > package.json << 'EOF'
 {
-  "name": "neurovibe-brain-training-game",
-  "private": true,
+  "name": "neurovibe",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "description": "PWA game for brain training with Google Gemini API",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -25,6 +29,11 @@
     "typescript": "^5.5.3",
     "tailwindcss": "^3.4.4",
     "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39"
+    "postcss": "^8.4.39",
+    "@types/workbox-window": "^4.3.4"
   }
 }
+EOF
+
+# Проверьте валидность
+node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))" && echo "✅ Валидно!"
