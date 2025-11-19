@@ -381,13 +381,9 @@ export default function App() {
               </div>
             </div>
           )}
-        </div>
-      </main>
 
-      <footer className="sticky bottom-0 z-20 w-full bg-white/90 backdrop-blur-xl border-t border-white/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-4 pb-6 safe-area-pb">
-        <div className="max-w-3xl mx-auto">
-          {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mt-6">
               <ModeButton
                 icon={<MessageSquare className="w-5 h-5" />}
                 title="Слова"
@@ -407,7 +403,13 @@ export default function App() {
                 onClick={() => handleModeSelect('associations')}
               />
             </div>
-          ) : (
+          )}
+        </div>
+      </main>
+
+      {(chatHistory.length > 0 || currentMode) && (
+        <footer className="sticky bottom-0 z-20 w-full bg-white/90 backdrop-blur-xl border-t border-white/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-4 pb-6 safe-area-pb">
+          <div className="max-w-3xl mx-auto">
             <form onSubmit={handleSend} className="flex items-center gap-3">
               <input
                 type="text"
@@ -428,9 +430,9 @@ export default function App() {
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
               </button>
             </form>
-          )}
-        </div>
-      </footer>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

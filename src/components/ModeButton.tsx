@@ -11,7 +11,7 @@ export const ModeButton: React.FC<ModeButtonProps> = ({ icon, title, description
   return (
     <button
       onClick={onClick}
-      className="group relative flex flex-col items-center justify-center text-center p-6 bg-white/80 backdrop-blur-sm border border-white/50 rounded-3xl shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 overflow-hidden"
+      className="group relative flex flex-col items-center justify-center text-center p-4 bg-white/80 backdrop-blur-sm border border-white/50 rounded-2xl shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 overflow-hidden h-full"
     >
       <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
