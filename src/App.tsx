@@ -39,16 +39,16 @@ export default function App() {
   useEffect(() => {
     offlineStorage.current = new OfflineStorage();
     offlineStorage.current.init().catch((e) => console.warn('OfflineStorage init failed:', e));
-    
+
     const handleOnline = () => {
       setIsOnline(true);
       offlineStorage.current?.sync().catch(console.error);
     };
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -65,8 +65,8 @@ export default function App() {
           setUnlockedAchievements(new Set(state.unlockedAchievements as AchievementId[]));
           setChatHistory(state.chatHistory);
         }
-      } catch (e) { 
-        console.error('Failed to load state:', e); 
+      } catch (e) {
+        console.error('Failed to load state:', e);
       }
     };
     loadState();
@@ -82,8 +82,8 @@ export default function App() {
           chatHistory,
           lastSaved: Date.now()
         });
-      } catch (e) { 
-        console.error('Failed to save state:', e); 
+      } catch (e) {
+        console.error('Failed to save state:', e);
       }
     };
     saveState();
@@ -91,7 +91,7 @@ export default function App() {
 
   useEffect(() => {
     if (!gamesPlayed || localStorage.getItem('pwa-prompt-dismissed')) return;
-    
+
     let isMounted = true;
     const handler = (e: Event) => {
       e.preventDefault();
@@ -100,17 +100,17 @@ export default function App() {
         if (isMounted) setShowPWAPrompt(true);
       }, 3000);
     };
-    
+
     window.addEventListener('beforeinstallprompt', handler);
-    return () => { 
-      isMounted = false; 
-      window.removeEventListener('beforeinstallprompt', handler); 
+    return () => {
+      isMounted = false;
+      window.removeEventListener('beforeinstallprompt', handler);
     };
   }, [gamesPlayed]);
 
   const handleInstallPWA = useCallback(async () => {
     if (!deferredPrompt) return;
-    
+
     try {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
@@ -136,18 +136,18 @@ export default function App() {
 
   const checkAndUnlockAchievements = useCallback((modelResponse: any) => {
     if (!modelResponse?.game_data) return;
-    
-    const ctx: AchievementCheckContext = { 
-      xp, 
-      gamesPlayed, 
-      lastModelResponse: modelResponse, 
-      currentGameMode: currentMode 
+
+    const ctx: AchievementCheckContext = {
+      xp,
+      gamesPlayed,
+      lastModelResponse: modelResponse,
+      currentGameMode: currentMode
     };
-    
-    const newUnlocks = ACHIEVEMENTS.filter(a => 
+
+    const newUnlocks = ACHIEVEMENTS.filter(a =>
       !unlockedAchievements.has(a.id) && a.check(ctx)
     );
-    
+
     if (newUnlocks.length) {
       setUnlockedAchievements(prev => {
         const next = new Set(prev);
@@ -199,7 +199,7 @@ export default function App() {
 
     try {
       const modelResponse = await generateJsonResponse(currentHistory, persona);
-      
+
       const modelMessage: ChatMessage = {
         role: 'model',
         parts: [{ text: modelResponse.display_html }],
@@ -217,10 +217,10 @@ export default function App() {
 
       setXp(prev => prev + modelResponse.xp_gained);
       checkAndUnlockAchievements(modelResponse);
-      
-      if (quest && !quest.completed && 
-          modelResponse.game_data.mode === quest.mode &&
-          (modelResponse.game_data.association_score ?? 0) >= quest.minScore) {
+
+      if (quest && !quest.completed &&
+        modelResponse.game_data.mode === quest.mode &&
+        (modelResponse.game_data.association_score ?? 0) >= quest.minScore) {
         complete();
         setXp(prev => prev + quest.xp);
       }
@@ -244,23 +244,23 @@ export default function App() {
   const handleModeSelect = useCallback((mode: GameMode) => {
     setCurrentMode(mode);
     setGamesPlayed(prev => prev + 1);
-    
+
     const prompts: Record<GameMode, string> = {
       words: 'Начни режим слов: запомни 7 слов и потом воспроизведи их.',
       story: 'Начни режим истории: дай короткую историю для понимания и вопросов.',
       associations: 'Начни режим ассоциаций: дай набор ассоциаций для теста.'
     };
-    
+
     sendMessage(prompts[mode], true);
   }, [sendMessage]);
 
   useEffect(() => {
     if (chatHistory.length > 0) return;
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode') as GameMode;
     const sharedText = urlParams.get('text');
-    
+
     if (mode && ['words', 'story', 'associations'].includes(mode)) {
       handleModeSelect(mode);
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -276,43 +276,43 @@ export default function App() {
     }
   }, [chatHistory, memoryContent]);
 
-  const achievementsCount = useMemo(() => 
-    `${unlockedAchievements.size}/${ACHIEVEMENTS.length}`, 
+  const achievementsCount = useMemo(() =>
+    `${unlockedAchievements.size}/${ACHIEVEMENTS.length}`,
     [unlockedAchievements]
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-slate-100 text-gray-900 font-sans overflow-hidden">
       {!isOnline && (
         <div className="bg-yellow-100 text-yellow-800 text-center py-2 px-4 font-medium">
           ⚠️ Офлайн режим — ответы сохраняются локально
         </div>
       )}
-      
+
       {toastQueue.length > 0 && (
-        <AchievementToast 
-          achievement={toastQueue[0]} 
-          onClose={() => setToastQueue(prev => prev.slice(1))} 
+        <AchievementToast
+          achievement={toastQueue[0]}
+          onClose={() => setToastQueue(prev => prev.slice(1))}
         />
       )}
-      
+
       {showConfetti && <Confetti />}
       {showPWAPrompt && <PWAPrompt onInstall={handleInstallPWA} onDismiss={dismissPWAPrompt} />}
-      
-      <AchievementsPanel 
-        isOpen={showAchievementsPanel} 
-        onClose={() => setShowAchievementsPanel(false)} 
-        allAchievements={ACHIEVEMENTS} 
-        unlockedIds={unlockedAchievements} 
+
+      <AchievementsPanel
+        isOpen={showAchievementsPanel}
+        onClose={() => setShowAchievementsPanel(false)}
+        allAchievements={ACHIEVEMENTS}
+        unlockedIds={unlockedAchievements}
       />
-      
-      <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-md shadow-sm">
+
+      <header className="sticky top-0 z-20 w-full bg-white/80 backdrop-blur-xl shadow-sm border-b border-white/50 supports-[backdrop-filter]:bg-white/60">
         <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             {chatHistory.length > 0 && (
-              <button 
-                onClick={resetGame} 
-                className="p-2 text-gray-500 hover:text-violet-600 transition-colors" 
+              <button
+                onClick={resetGame}
+                className="p-2 text-gray-500 hover:text-violet-600 transition-colors"
                 aria-label="Назад"
               >
                 <ArrowLeft className="w-6 h-6" />
@@ -321,11 +321,11 @@ export default function App() {
             <BrainCircuit className="w-7 h-7 text-violet-600" />
             <h1 className="text-2xl font-bold text-gray-800">NeuroVibe</h1>
           </div>
-          
+
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setShowAchievementsPanel(true)} 
-              className="text-gray-500 hover:text-violet-600 transition-colors relative" 
+            <button
+              onClick={() => setShowAchievementsPanel(true)}
+              className="text-gray-500 hover:text-violet-600 transition-colors relative"
               aria-label="Достижения"
             >
               <Trophy className="w-6 h-6" />
@@ -333,7 +333,7 @@ export default function App() {
                 {achievementsCount}
               </span>
             </button>
-            
+
             <div className="flex items-center gap-2 bg-green-100 text-green-800 font-bold rounded-full px-4 py-1.5 shadow-sm transition-all duration-300 hover:shadow-md">
               <Award className="w-5 h-5" />
               <span key={xp} className="animate-pulse-once">{xp} XP</span>
@@ -342,10 +342,10 @@ export default function App() {
         </div>
       </header>
 
-      <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4">
+      <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4 scroll-smooth">
         <div className="max-w-3xl mx-auto space-y-4">
           <PersonaRadio value={persona} onChange={setPersona} />
-          
+
           {quest && !quest.completed && (
             <div className="mx-2 mb-2 p-3 rounded-lg bg-yellow-100 text-yellow-800 text-sm font-medium">
               🎯 <span className="font-bold">{quest.title}</span>: {quest.description}
@@ -360,7 +360,7 @@ export default function App() {
             const bubbleClasses = `p-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%] break-words`;
             const userClasses = `${bubbleClasses} bg-violet-600 text-white rounded-br-lg ml-auto`;
             const modelClasses = `${bubbleClasses} bg-white text-gray-800 rounded-bl-lg border border-gray-100 mr-auto`;
-            
+
             return (
               <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 <div className={isUser ? userClasses : modelClasses}>
@@ -373,7 +373,7 @@ export default function App() {
               </div>
             );
           })}
-          
+
           {isLoading && (
             <div className="flex justify-start">
               <div className="p-3 rounded-2xl shadow-md bg-white text-gray-800 rounded-bl-lg border border-gray-100" aria-label="Загрузка">
@@ -384,45 +384,45 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="sticky bottom-0 z-10 w-full bg-white/80 backdrop-blur-md p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <footer className="sticky bottom-0 z-20 w-full bg-white/90 backdrop-blur-xl border-t border-white/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-4 pb-6 safe-area-pb">
         <div className="max-w-3xl mx-auto">
           {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <ModeButton 
-                icon={<MessageSquare className="w-5 h-5" />} 
-                title="Слова" 
-                description="Запомни 7 слов" 
-                onClick={() => handleModeSelect('words')} 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <ModeButton
+                icon={<MessageSquare className="w-5 h-5" />}
+                title="Слова"
+                description="Запомни 7 слов"
+                onClick={() => handleModeSelect('words')}
               />
-              <ModeButton 
-                icon={<BookOpenText className="w-5 h-5" />} 
-                title="История" 
-                description="Понимание истории" 
-                onClick={() => handleModeSelect('story')} 
+              <ModeButton
+                icon={<BookOpenText className="w-5 h-5" />}
+                title="История"
+                description="Понимание истории"
+                onClick={() => handleModeSelect('story')}
               />
-              <ModeButton 
-                icon={<Users className="w-5 h-5" />} 
-                title="Ассоциации" 
-                description="Тренировка ассоциаций" 
-                onClick={() => handleModeSelect('associations')} 
+              <ModeButton
+                icon={<Users className="w-5 h-5" />}
+                title="Ассоциации"
+                description="Тренировка ассоциаций"
+                onClick={() => handleModeSelect('associations')}
               />
             </div>
           ) : (
             <form onSubmit={handleSend} className="flex items-center gap-3">
-              <input 
-                type="text" 
-                value={input} 
-                onChange={(e) => setInput(e.target.value)} 
-                placeholder="Введите сообщение..." 
-                disabled={isLoading || !isOnline || !!memoryContent} 
-                className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100" 
-                aria-label="Ввод сообщения" 
-                autoComplete="off" 
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Введите сообщение..."
+                disabled={isLoading || !isOnline || !!memoryContent}
+                className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
+                aria-label="Ввод сообщения"
+                autoComplete="off"
               />
-              <button 
-                type="submit" 
-                disabled={isLoading || !input.trim() || !isOnline || !!memoryContent} 
-                className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]" 
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim() || !isOnline || !!memoryContent}
+                className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]"
                 aria-label={isLoading ? "Отправка..." : "Отправить"}
               >
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
