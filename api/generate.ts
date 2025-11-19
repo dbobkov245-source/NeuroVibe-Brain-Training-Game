@@ -1,7 +1,7 @@
 // api/generate.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
