@@ -1,7 +1,7 @@
 // api/generate.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -69,11 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json(json);
   } catch (error: any) {
     console.error('Server error:', error);
-    
+
     if (error.name === 'AbortError') {
       return res.status(504).json({ error: 'Request timeout' });
     }
-    
+
     res.status(500).json({ error: 'Internal server error' });
   }
 }
