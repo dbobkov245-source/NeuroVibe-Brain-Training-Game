@@ -2,6 +2,40 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
+// Priority list of models to try
+const MODEL_PRIORITY = [
+  'gemini-2.5-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-pro'
+];
+
+async function getBestModel(apiKey: string): Promise<string> {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!response.ok) {
+      console.warn('Failed to list models, falling back to default');
+      return 'gemini-1.5-flash';
+    }
+
+    const data = await response.json();
+    const availableModels = new Set((data.models || []).map((m: any) => m.name.replace('models/', '')));
+
+    for (const model of MODEL_PRIORITY) {
+      if (availableModels.has(model)) {
+        console.log(`Selected model: ${model}`);
+        return model;
+      }
+    }
+
+    console.warn('No priority models found, falling back to default');
+    return 'gemini-1.5-flash';
+  } catch (error) {
+    console.error('Error selecting model:', error);
+    return 'gemini-1.5-flash';
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,78 +59,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { history, system, generationConfig } = req.body;
 
   try {
+    // Dynamically select the best model
+    const modelName = await getBestModel(apiKey);
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: system?.text,
-    });
-
-    const chat = model.startChat({
-      history: history.map((m: any) => ({
-        role: m.role === 'model' ? 'model' : 'user',
-        parts: m.parts,
-      })),
-      generationConfig: {
-        ...generationConfig,
-        responseMimeType: 'application/json',
-      },
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-    });
-
-    // The last message from the user is usually not in the history passed to startChat
-    // if the client appends it before sending. 
-    // However, looking at the previous code:
-    // contents: history.map(...)
-    // It seems the client sends the FULL history including the latest user message.
-    // The SDK's startChat takes history, and then we call sendMessage with the new message.
-    // If the history contains the last user message, we should pop it and send it via sendMessage,
-    // OR if the client sends the new message separately?
-    // Let's check App.tsx again.
-    // App.tsx: const currentHistory = [...chatHistory, userMessage];
-    // generateJsonResponse(currentHistory, ...)
-    // So the history INCLUDES the latest user message.
-
-    // We need to separate the last message for sendMessage, or use sendMessage with empty string if that's allowed?
-    // No, sendMessage expects a prompt.
-    // Let's extract the last user message.
-
-    const historyForSdk = history.map((m: any) => ({
-      role: m.role === 'model' ? 'model' : 'user',
-      parts: m.parts,
-    }));
-
-    const lastMessage = historyForSdk.pop();
-
-    if (!lastMessage || lastMessage.role !== 'user') {
-      // Fallback if something is weird, though App.tsx ensures user message is last.
-      // If the last message is model, we can't really "reply" to it in the same way.
-      // But let's assume standard flow.
-      throw new Error('Last message must be from user');
-    }
-
-    const chatSession = model.startChat({
-      history: historyForSdk,
-      generationConfig: {
-        ...generationConfig,
-        responseMimeType: 'application/json',
-      },
-      // Safety settings repeated here if needed, but startChat accepts them in model config or here?
-      // Actually safetySettings are per request or model. 
-      // Let's put them in getGenerativeModel or startChat?
-      // SDK v0.1.0+ puts them in getGenerativeModel usually, or startChat.
-      // Let's check docs or assume standard usage.
-      // safetySettings are usually 2nd arg to getGenerativeModel or part of RequestOptions.
-      // But wait, getGenerativeModel takes { model, safetySettings, systemInstruction, ... }
-    });
-
-    // Re-init model with safety settings
-    const modelWithSafety = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: modelName,
       systemInstruction: system?.text,
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -106,7 +74,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]
     });
 
-    const chatWithSafety = modelWithSafety.startChat({
+    // Extract history and last message logic
+    const historyForSdk = history.map((m: any) => ({
+      role: m.role === 'model' ? 'model' : 'user',
+      parts: m.parts,
+    }));
+
+    const lastMessage = historyForSdk.pop();
+
+    if (!lastMessage || lastMessage.role !== 'user') {
+      throw new Error('Last message must be from user');
+    }
+
+    const chat = model.startChat({
       history: historyForSdk,
       generationConfig: {
         ...generationConfig,
@@ -114,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    const result = await chatWithSafety.sendMessage(lastMessage.parts[0].text);
+    const result = await chat.sendMessage(lastMessage.parts[0].text);
     const response = await result.response;
     const text = response.text();
 
@@ -126,6 +106,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('Invalid JSON from model:', text);
       return res.status(502).json({ error: 'Invalid response format from AI', raw: text });
     }
+
+    // Add model info to response for debugging
+    json._debug_model = modelName;
 
     res.status(200).json(json);
   } catch (error: any) {
