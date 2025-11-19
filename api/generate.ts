@@ -1,7 +1,6 @@
 // api/generate.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -26,36 +25,98 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { history, system, generationConfig } = req.body;
 
   try {
-    const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: history.map((m: any) => ({
-          role: m.role === 'model' ? 'model' : 'user',
-          parts: m.parts,
-        })),
-        systemInstruction: { parts: [{ text: system.text }] },
-        generationConfig: {
-          ...generationConfig,
-          responseMimeType: 'application/json',
-        },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-        ],
-      }),
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: system?.text,
     });
 
-    if (!response.ok) {
-      const err = await response.text().catch(() => 'Unknown error');
-      console.error('Gemini error:', response.status, err);
-      return res.status(response.status).json({ error: `AI service error: ${response.status}` });
+    const chat = model.startChat({
+      history: history.map((m: any) => ({
+        role: m.role === 'model' ? 'model' : 'user',
+        parts: m.parts,
+      })),
+      generationConfig: {
+        ...generationConfig,
+        responseMimeType: 'application/json',
+      },
+      safetySettings: [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      ],
+    });
+
+    // The last message from the user is usually not in the history passed to startChat
+    // if the client appends it before sending. 
+    // However, looking at the previous code:
+    // contents: history.map(...)
+    // It seems the client sends the FULL history including the latest user message.
+    // The SDK's startChat takes history, and then we call sendMessage with the new message.
+    // If the history contains the last user message, we should pop it and send it via sendMessage,
+    // OR if the client sends the new message separately?
+    // Let's check App.tsx again.
+    // App.tsx: const currentHistory = [...chatHistory, userMessage];
+    // generateJsonResponse(currentHistory, ...)
+    // So the history INCLUDES the latest user message.
+
+    // We need to separate the last message for sendMessage, or use sendMessage with empty string if that's allowed?
+    // No, sendMessage expects a prompt.
+    // Let's extract the last user message.
+
+    const historyForSdk = history.map((m: any) => ({
+      role: m.role === 'model' ? 'model' : 'user',
+      parts: m.parts,
+    }));
+
+    const lastMessage = historyForSdk.pop();
+
+    if (!lastMessage || lastMessage.role !== 'user') {
+      // Fallback if something is weird, though App.tsx ensures user message is last.
+      // If the last message is model, we can't really "reply" to it in the same way.
+      // But let's assume standard flow.
+      throw new Error('Last message must be from user');
     }
 
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const chatSession = model.startChat({
+      history: historyForSdk,
+      generationConfig: {
+        ...generationConfig,
+        responseMimeType: 'application/json',
+      },
+      // Safety settings repeated here if needed, but startChat accepts them in model config or here?
+      // Actually safetySettings are per request or model. 
+      // Let's put them in getGenerativeModel or startChat?
+      // SDK v0.1.0+ puts them in getGenerativeModel usually, or startChat.
+      // Let's check docs or assume standard usage.
+      // safetySettings are usually 2nd arg to getGenerativeModel or part of RequestOptions.
+      // But wait, getGenerativeModel takes { model, safetySettings, systemInstruction, ... }
+    });
+
+    // Re-init model with safety settings
+    const modelWithSafety = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: system?.text,
+      safetySettings: [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      ]
+    });
+
+    const chatWithSafety = modelWithSafety.startChat({
+      history: historyForSdk,
+      generationConfig: {
+        ...generationConfig,
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const result = await chatWithSafety.sendMessage(lastMessage.parts[0].text);
+    const response = await result.response;
+    const text = response.text();
 
     let json;
     try {
@@ -69,11 +130,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json(json);
   } catch (error: any) {
     console.error('Server error:', error);
-
-    if (error.name === 'AbortError') {
-      return res.status(504).json({ error: 'Request timeout' });
-    }
-
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
