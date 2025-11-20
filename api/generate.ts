@@ -4,7 +4,9 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 
 // Priority list of models to try
 const MODEL_PRIORITY = [
+  'gemini-1.5-flash-001',
   'gemini-1.5-flash',
+  'gemini-1.5-pro-001',
   'gemini-1.5-pro',
   'gemini-pro'
 ];
@@ -14,11 +16,12 @@ async function getBestModel(apiKey: string): Promise<string> {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (!response.ok) {
       console.warn('Failed to list models, falling back to default');
-      return 'gemini-1.5-flash';
+      return 'gemini-1.5-flash-001';
     }
 
     const data = await response.json();
     const availableModels = new Set((data.models || []).map((m: any) => m.name.replace('models/', '')));
+    console.log('Available models:', Array.from(availableModels));
 
     for (const model of MODEL_PRIORITY) {
       if (availableModels.has(model)) {
@@ -28,10 +31,10 @@ async function getBestModel(apiKey: string): Promise<string> {
     }
 
     console.warn('No priority models found, falling back to default');
-    return 'gemini-1.5-flash';
+    return 'gemini-1.5-flash-001';
   } catch (error) {
     console.error('Error selecting model:', error);
-    return 'gemini-1.5-flash';
+    return 'gemini-1.5-flash-001';
   }
 }
 
