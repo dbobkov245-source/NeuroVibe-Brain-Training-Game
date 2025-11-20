@@ -338,7 +338,7 @@ export default function App() {
                 <div className="mb-3 p-3 rounded-full bg-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                   <BrainCircuit className="w-8 h-8 text-violet-400" />
                 </div>
-                <span className="text-sm font-medium text-gray-300">NeuroBrain</span>
+                <span className="text-sm font-medium text-gray-300">НейроМозг</span>
               </BentoCard>
 
               <CharacterCard currentPersona={persona} onChange={setPersona} />
@@ -350,7 +350,7 @@ export default function App() {
                 <div className="mb-3 p-3 rounded-full bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                   <Trophy className="w-8 h-8 text-emerald-400" />
                 </div>
-                <span className="text-sm font-medium text-gray-300">Growth</span>
+                <span className="text-sm font-medium text-gray-300">Прогресс</span>
               </BentoCard>
             </div>
 
@@ -358,8 +358,8 @@ export default function App() {
             <div className="relative overflow-hidden rounded-2xl glass-card glass-card-gold p-6 cursor-pointer group">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-yellow-500 mb-1">New modules available now</h3>
-                  <p className="text-sm text-yellow-200/70">Expand your cognitive horizons.</p>
+                  <h3 className="text-lg font-bold text-yellow-500 mb-1">Новые модули доступны</h3>
+                  <p className="text-sm text-yellow-200/70">Расширь свои когнитивные горизонты.</p>
                 </div>
                 <div className="p-2 rounded-full bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
                   <ArrowLeft className="w-5 h-5 text-yellow-500 rotate-180" />
@@ -370,8 +370,8 @@ export default function App() {
             {/* Bottom Row: 2 Large Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ModuleCard
-                title="Words & Phrases"
-                description="Memorize 7 words"
+                title="Слова и Фразы"
+                description="Запомни 7 слов"
                 icon={<MessageSquare className="w-6 h-6" />}
                 onClick={() => handleModeSelect('words')}
                 colorClass="text-blue-400"
@@ -379,8 +379,8 @@ export default function App() {
               />
 
               <ModuleCard
-                title="History & Progress"
-                description="Understand the narrative"
+                title="История и Сюжет"
+                description="Пойми контекст"
                 icon={<BookOpenText className="w-6 h-6" />}
                 onClick={() => handleModeSelect('story')}
                 colorClass="text-pink-400"

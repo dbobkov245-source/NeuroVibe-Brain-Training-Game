@@ -18,9 +18,9 @@ export function CharacterCard({ currentPersona, onChange }: CharacterCardProps) 
             <div className="mb-3 p-3 rounded-full bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                 <Bot className="w-8 h-8 text-blue-400" />
             </div>
-            <span className="text-sm font-medium text-gray-300">VibeBot</span>
+            <span className="text-sm font-medium text-gray-300">ВайбБот</span>
             <div className="mt-2 text-xs text-bento-muted px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
-                {isDemon ? 'Demon' : 'Friendly'}
+                {isDemon ? 'Демон' : 'Друг'}
             </div>
         </BentoCard>
     );
