@@ -4,15 +4,20 @@ import { ChatMessage, GameMode, AchievementId, Achievement, AchievementCheckCont
 import { ACHIEVEMENTS } from './achievements';
 import { generateJsonResponse } from './services/geminiService';
 import { OfflineStorage } from './offlineStorage';
-import { BrainCircuit, Award, Send, MessageSquare, BookOpenText, Users, Loader2, Trophy, ArrowLeft } from './components/Icons';
-import { ModeButton } from './components/ModeButton';
 import { AchievementToast } from './components/AchievementToast';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { PWAPrompt } from './components/PWAPrompt';
 import { MemoryCard } from './components/MemoryCard';
-import { PersonaRadio } from './components/PersonaRadio';
 import { useDailyQuest } from './hooks/useDailyQuest';
 import { Confetti } from './components/Confetti';
+
+// New Components
+import { BrainCircuit, Trophy, ArrowLeft, MessageSquare, BookOpenText, Loader2, Send } from 'lucide-react';
+import { Layout } from './components/Layout';
+import { BentoCard } from './components/BentoGrid';
+import { DashboardHeader } from './components/DashboardHeader';
+import { CharacterCard } from './components/CharacterCard';
+import { ModuleCard } from './components/ModuleCard';
 
 export default function App() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -281,11 +286,14 @@ export default function App() {
     [unlockedAchievements]
   );
 
+  // Determine if we are in a game/chat mode
+  const isGameActive = chatHistory.length > 0 || currentMode;
+
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-slate-100 text-gray-900 font-sans overflow-hidden">
+    <Layout>
       {!isOnline && (
-        <div className="bg-yellow-100 text-yellow-800 text-center py-2 px-4 font-medium">
-          ⚠️ Офлайн режим — ответы сохраняются локально
+        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-200 text-center py-2 px-4 rounded-xl font-medium backdrop-blur-sm">
+          ⚠️ Offline Mode — Responses saved locally
         </div>
       )}
 
@@ -306,133 +314,159 @@ export default function App() {
         unlockedIds={unlockedAchievements}
       />
 
-      <header className="sticky top-0 z-20 w-full bg-white/80 backdrop-blur-xl shadow-sm border-b border-white/50 supports-[backdrop-filter]:bg-white/60">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            {chatHistory.length > 0 && (
-              <button
-                onClick={resetGame}
-                className="p-2 text-gray-500 hover:text-violet-600 transition-colors"
-                aria-label="Назад"
+      {/* Header is always visible unless deep in game? No, let's keep it but maybe simplified in game */}
+      <DashboardHeader
+        xp={xp}
+        achievementsCount={achievementsCount}
+        onOpenAchievements={() => setShowAchievementsPanel(true)}
+        onReset={resetGame}
+        showBack={!!isGameActive}
+      />
+
+      {/* Main Content Area */}
+      <div className="relative min-h-[60vh]">
+
+        {/* Dashboard View */}
+        {!isGameActive && (
+          <div className="space-y-6 animate-fade-in-up">
+            {/* Top Row: 3 Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <BentoCard
+                className="aspect-square flex flex-col items-center justify-center text-center p-4"
+                onClick={() => handleModeSelect('associations')}
               >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-            )}
-            <BrainCircuit className="w-7 h-7 text-violet-600" />
-            <h1 className="text-2xl font-bold text-gray-800">NeuroVibe</h1>
-          </div>
+                <div className="mb-3 p-3 rounded-full bg-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+                  <BrainCircuit className="w-8 h-8 text-violet-400" />
+                </div>
+                <span className="text-sm font-medium text-gray-300">NeuroBrain</span>
+              </BentoCard>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowAchievementsPanel(true)}
-              className="text-gray-500 hover:text-violet-600 transition-colors relative"
-              aria-label="Достижения"
-            >
-              <Trophy className="w-6 h-6" />
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {achievementsCount}
-              </span>
-            </button>
+              <CharacterCard currentPersona={persona} onChange={setPersona} />
 
-            <div className="flex items-center gap-2 bg-green-100 text-green-800 font-bold rounded-full px-4 py-1.5 shadow-sm transition-all duration-300 hover:shadow-md">
-              <Award className="w-5 h-5" />
-              <span key={xp} className="animate-pulse-once">{xp} XP</span>
+              <BentoCard
+                className="aspect-square flex flex-col items-center justify-center text-center p-4"
+                onClick={() => setShowAchievementsPanel(true)}
+              >
+                <div className="mb-3 p-3 rounded-full bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  <Trophy className="w-8 h-8 text-emerald-400" />
+                </div>
+                <span className="text-sm font-medium text-gray-300">Growth</span>
+              </BentoCard>
             </div>
-          </div>
-        </div>
-      </header>
 
-      <main ref={chatContainerRef} className="flex-grow overflow-y-auto p-4 scroll-smooth">
-        <div className="max-w-3xl mx-auto space-y-4">
-          <PersonaRadio value={persona} onChange={setPersona} />
-
-          {quest && !quest.completed && (
-            <div className="mx-2 mb-2 p-3 rounded-lg bg-yellow-100 text-yellow-800 text-sm font-medium">
-              🎯 <span className="font-bold">{quest.title}</span>: {quest.description}
-            </div>
-          )}
-
-          {memoryContent && <MemoryCard content={memoryContent} onReady={() => setMemoryContent(null)} />}
-
-          {chatHistory.map((msg, index) => {
-            if (msg.isHidden) return null;
-            const isUser = msg.role === 'user';
-            const bubbleClasses = `p-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%] break-words`;
-            const userClasses = `${bubbleClasses} bg-violet-600 text-white rounded-br-lg ml-auto`;
-            const modelClasses = `${bubbleClasses} bg-white text-gray-800 rounded-bl-lg border border-gray-100 mr-auto`;
-
-            return (
-              <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div className={isUser ? userClasses : modelClasses}>
-                  {isUser ? (
-                    <span>{msg.parts[0].text}</span>
-                  ) : (
-                    <span dangerouslySetInnerHTML={{ __html: msg.parts[0].text }} />
-                  )}
+            {/* Middle Row: Banner */}
+            <div className="relative overflow-hidden rounded-2xl glass-card glass-card-gold p-6 cursor-pointer group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-yellow-500 mb-1">New modules available now</h3>
+                  <p className="text-sm text-yellow-200/70">Expand your cognitive horizons.</p>
+                </div>
+                <div className="p-2 rounded-full bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
+                  <ArrowLeft className="w-5 h-5 text-yellow-500 rotate-180" />
                 </div>
               </div>
-            );
-          })}
-
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="p-3 rounded-2xl shadow-md bg-white text-gray-800 rounded-bl-lg border border-gray-100" aria-label="Загрузка">
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
             </div>
-          )}
 
-          {chatHistory.length === 0 && !isLoading && !memoryContent && !currentMode && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mt-6">
-              <ModeButton
-                icon={<MessageSquare className="w-5 h-5" />}
-                title="Слова"
-                description="Запомни 7 слов"
+            {/* Bottom Row: 2 Large Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ModuleCard
+                title="Words & Phrases"
+                description="Memorize 7 words"
+                icon={<MessageSquare className="w-6 h-6" />}
                 onClick={() => handleModeSelect('words')}
+                colorClass="text-blue-400"
+                delay={0}
               />
-              <ModeButton
-                icon={<BookOpenText className="w-5 h-5" />}
-                title="История"
-                description="Понимание истории"
+
+              <ModuleCard
+                title="History & Progress"
+                description="Understand the narrative"
+                icon={<BookOpenText className="w-6 h-6" />}
                 onClick={() => handleModeSelect('story')}
-              />
-              <ModeButton
-                icon={<Users className="w-5 h-5" />}
-                title="Ассоциации"
-                description="Тренировка ассоциаций"
-                onClick={() => handleModeSelect('associations')}
+                colorClass="text-pink-400"
+                delay={1}
               />
             </div>
-          )}
-        </div>
-      </main>
-
-      {(chatHistory.length > 0 || currentMode) && (
-        <footer className="sticky bottom-0 z-20 w-full bg-white/90 backdrop-blur-xl border-t border-white/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-4 pb-6 safe-area-pb">
-          <div className="max-w-3xl mx-auto">
-            <form onSubmit={handleSend} className="flex items-center gap-3">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Введите сообщение..."
-                disabled={isLoading || !isOnline || !!memoryContent}
-                className="flex-grow px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:bg-gray-100"
-                aria-label="Ввод сообщения"
-                autoComplete="off"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim() || !isOnline || !!memoryContent}
-                className="p-3 bg-violet-600 text-white rounded-lg shadow-md hover:bg-violet-700 transition-colors duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center min-w-[48px]"
-                aria-label={isLoading ? "Отправка..." : "Отправить"}
-              >
-                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-              </button>
-            </form>
           </div>
-        </footer>
-      )}
-    </div>
+        )}
+
+        {/* Game/Chat View */}
+        {isGameActive && (
+          <div className="flex flex-col h-[calc(100vh-180px)]">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={resetGame}
+                className="flex items-center gap-2 text-bento-muted hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back to Dashboard</span>
+              </button>
+            </div>
+
+            <div
+              ref={chatContainerRef}
+              className="flex-grow overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+            >
+              {memoryContent && <MemoryCard content={memoryContent} onReady={() => setMemoryContent(null)} />}
+
+              {chatHistory.map((msg, index) => {
+                if (msg.isHidden) return null;
+                const isUser = msg.role === 'user';
+
+                return (
+                  <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={isUser
+                        ? "bg-bento-accent text-white p-4 rounded-2xl rounded-br-sm max-w-[85%] shadow-lg shadow-bento-accent/10"
+                        : "bg-bento-card border border-white/5 text-gray-200 p-4 rounded-2xl rounded-bl-sm max-w-[85%] shadow-lg"
+                      }
+                    >
+                      {isUser ? (
+                        <span>{msg.parts[0].text}</span>
+                      ) : (
+                        <div
+                          className="prose prose-invert prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: msg.parts[0].text }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-bento-card border border-white/5 p-4 rounded-2xl rounded-bl-sm shadow-lg">
+                    <Loader2 className="w-5 h-5 animate-spin text-bento-accent" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <form onSubmit={handleSend} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your answer..."
+                  disabled={isLoading || !isOnline || !!memoryContent}
+                  className="flex-grow px-4 py-3 bg-bento-inner border border-white/5 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bento-accent/50 focus:border-bento-accent/50 transition-all disabled:opacity-50"
+                  autoComplete="off"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim() || !isOnline || !!memoryContent}
+                  className="p-3 bg-bento-accent text-white rounded-xl shadow-lg shadow-bento-accent/20 hover:bg-violet-500 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }

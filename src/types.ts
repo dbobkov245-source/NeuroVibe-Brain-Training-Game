@@ -14,7 +14,7 @@ export const GAME_MODES = ['words', 'story', 'associations'] as const;
 export type GameMode = typeof GAME_MODES[number];
 
 // ========== Персоны ==========
-export const PERSONAS = ['demon', 'cyborg', 'grandpa'] as const;
+export const PERSONAS = ['demon', 'friendly', 'cyborg', 'grandpa'] as const;
 export type Persona = typeof PERSONAS[number];
 
 // ========== Достижения ==========
