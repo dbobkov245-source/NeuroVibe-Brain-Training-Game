@@ -293,7 +293,7 @@ export default function App() {
     <Layout>
       {!isOnline && (
         <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-200 text-center py-2 px-4 rounded-xl font-medium backdrop-blur-sm">
-          ⚠️ Offline Mode — Responses saved locally
+          ⚠️ Офлайн режим — ответы сохраняются локально
         </div>
       )}
 
@@ -355,7 +355,10 @@ export default function App() {
             </div>
 
             {/* Middle Row: Banner */}
-            <div className="relative overflow-hidden rounded-2xl glass-card glass-card-gold p-6 cursor-pointer group">
+            <div
+              onClick={() => handleModeSelect('words')}
+              className="relative overflow-hidden rounded-2xl glass-card glass-card-gold p-6 cursor-pointer group"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-yellow-500 mb-1">Новые модули доступны</h3>
@@ -399,7 +402,7 @@ export default function App() {
                 className="flex items-center gap-2 text-bento-muted hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
+                <span>Назад в меню</span>
               </button>
             </div>
 
@@ -450,7 +453,7 @@ export default function App() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your answer..."
+                  placeholder="Введите ваш ответ..."
                   disabled={isLoading || !isOnline || !!memoryContent}
                   className="flex-grow px-4 py-3 bg-bento-inner border border-white/5 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bento-accent/50 focus:border-bento-accent/50 transition-all disabled:opacity-50"
                   autoComplete="off"

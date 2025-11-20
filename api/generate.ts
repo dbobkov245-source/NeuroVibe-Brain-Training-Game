@@ -4,7 +4,6 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 
 // Priority list of models to try
 const MODEL_PRIORITY = [
-  'gemini-2.5-flash',
   'gemini-1.5-flash',
   'gemini-1.5-pro',
   'gemini-pro'
