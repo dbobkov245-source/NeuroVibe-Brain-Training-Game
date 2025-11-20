@@ -338,7 +338,7 @@ export default function App() {
                 <div className="mb-3 p-3 rounded-full bg-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                   <BrainCircuit className="w-8 h-8 text-violet-400" />
                 </div>
-                <span className="text-sm font-medium text-gray-300">НейроМозг</span>
+                <span className="text-sm font-medium text-gray-300">Ассоциации</span>
               </BentoCard>
 
               <CharacterCard currentPersona={persona} onChange={setPersona} />
