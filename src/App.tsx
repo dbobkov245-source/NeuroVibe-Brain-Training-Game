@@ -361,11 +361,11 @@ export default function App() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-yellow-500 mb-1">Новые модули доступны</h3>
-                  <p className="text-sm text-yellow-200/70">Расширь свои когнитивные горизонты.</p>
+                  <h3 className="text-lg font-bold text-[#c2b280] mb-1">Новые модули доступны</h3>
+                  <p className="text-sm text-[#c2b280]/70">Расширь свои когнитивные горизонты.</p>
                 </div>
-                <div className="p-2 rounded-full bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
-                  <ArrowLeft className="w-5 h-5 text-yellow-500 rotate-180" />
+                <div className="p-2 rounded-full bg-[#c2b280]/10 group-hover:bg-[#c2b280]/20 transition-colors shadow-[0_0_10px_rgba(194,178,128,0.2)]">
+                  <ArrowLeft className="w-5 h-5 text-[#c2b280] rotate-180 icon-glow-gold" />
                 </div>
               </div>
             </div>
