@@ -404,18 +404,6 @@ export default function App() {
               ref={chatContainerRef}
               className="flex-grow overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             >
-              {memoryContent && (
-                <MemoryCard
-                  content={memoryContent}
-                  onReady={() => {
-                    setMemoryContent(null);
-                    if (currentMode === 'story' || currentMode === 'details') {
-                      sendMessage("Контент запомнен. Задай вопрос.", true);
-                    }
-                  }}
-                />
-              )}
-
               {chatHistory.map((msg, index) => {
                 if (msg.isHidden) return null;
                 const isUser = msg.role === 'user';
@@ -441,6 +429,18 @@ export default function App() {
                 );
               })}
 
+              {memoryContent && (
+                <MemoryCard
+                  content={memoryContent}
+                  onReady={() => {
+                    setMemoryContent(null);
+                    if (currentMode === 'story' || currentMode === 'details') {
+                      sendMessage("Контент запомнен. Задай вопрос.", true);
+                    }
+                  }}
+                />
+              )}
+
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-bento-card border border-white/5 p-4 rounded-2xl rounded-bl-sm shadow-lg">
@@ -462,6 +462,18 @@ export default function App() {
                   className="flex-grow px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bento-accent/50 focus:border-bento-accent/50 transition-all disabled:opacity-50"
                   autoComplete="off"
                 />
+
+                {/* Next Button */}
+                {!isLoading && !memoryContent && (
+                  <button
+                    type="button"
+                    onClick={() => sendMessage("Дальше", false)}
+                    className="p-3 bg-violet-100 text-violet-600 rounded-xl hover:bg-violet-200 hover:text-violet-900 transition-all font-medium"
+                    title="Следующий вопрос"
+                  >
+                    Дальше
+                  </button>
+                )}
 
                 {/* Continue Button */}
                 {!isLoading && !memoryContent && (
