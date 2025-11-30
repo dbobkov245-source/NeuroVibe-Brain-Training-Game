@@ -1,5 +1,6 @@
 import { AchievementDefinition } from './types';
 import { BookOpenText, MessageSquare, Users, Award, Trophy, Brain } from './components/Icons';
+import { Eye } from 'lucide-react';
 
 export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
@@ -69,6 +70,16 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
       if (!lastModelResponse || currentGameMode !== 'associations') return false;
       const { association_score } = lastModelResponse.game_data;
       return association_score === 10;
+    },
+  },
+  {
+    id: 'DETAILS_DETECTIVE',
+    name: 'Шерлок Холмс',
+    description: 'Успешно пройдите игру в режиме "Детали".',
+    icon: BookOpenText, // Using BookOpenText as a placeholder or maybe Eye if I can import it
+    check: ({ lastModelResponse, currentGameMode }) => {
+      if (!lastModelResponse || currentGameMode !== 'details') return false;
+      return lastModelResponse.xp_gained > 0;
     },
   },
 ];

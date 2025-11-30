@@ -25,7 +25,8 @@ export const ACHIEVEMENT_IDS = [
   'NOVICE_NEURONAUT',
   'FIVE_TIME_CHAMPION',
   'SARCASM_KING',
-  'DARK_PHILOSOPHER'
+  'DARK_PHILOSOPHER',
+  'DETAILS_DETECTIVE'
 ] as const;
 
 export type AchievementId = typeof ACHIEVEMENT_IDS[number];
