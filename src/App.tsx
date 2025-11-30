@@ -449,7 +449,7 @@ export default function App() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Введите ваш ответ..."
                   disabled={isLoading || !isOnline || !!memoryContent}
-                  className="flex-grow px-4 py-3 bg-bento-inner border border-white/5 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bento-accent/50 focus:border-bento-accent/50 transition-all disabled:opacity-50"
+                  className="flex-grow px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bento-accent/50 focus:border-bento-accent/50 transition-all disabled:opacity-50"
                   autoComplete="off"
                 />
                 <button
