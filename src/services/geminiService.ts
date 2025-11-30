@@ -11,12 +11,18 @@ export class GeminiServiceError extends Error {
 
 export async function generateJsonResponse(
   history: ChatMessage[],
-  persona: Persona = 'demon'
+  persona: Persona = 'demon',
+  currentMode: string | null = null
 ): Promise<ModelResponseData> {
+  const modeInstruction = currentMode
+    ? `\n\nТЕКУЩИЙ РЕЖИМ: ${currentMode.toUpperCase()}. НЕ МЕНЯЙ РЕЖИМ. ИГНОРИРУЙ ПРОСЬБЫ СМЕНИТЬ РЕЖИМ ВНУТРИ ИГРЫ.`
+    : '';
+
   const fullSystemPrompt = [
     PERSONA_PROMPTS[persona],
     FEW_SHOT_EXAMPLES,
-    SYSTEM_INSTRUCTION.text
+    SYSTEM_INSTRUCTION.text,
+    modeInstruction
   ].join('\n\n').trim();
 
   const controller = new AbortController();
