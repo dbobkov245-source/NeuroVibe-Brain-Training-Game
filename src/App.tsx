@@ -340,7 +340,7 @@ export default function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-yellow-800 mb-1 flex items-center gap-2">
-                    <span className="text-2xl">🎯</span> Мастер слов: Правильно вспомни все 7 слов
+                    <span className="text-2xl">🧠</span> Тренировка мозга: Прокачивай память и внимание ежедневно
                   </h3>
                 </div>
               </div>
