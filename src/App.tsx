@@ -405,14 +405,14 @@ export default function App() {
                     <div
                       className={isUser
                         ? "bg-bento-accent text-white p-4 rounded-2xl rounded-br-sm max-w-[85%] shadow-lg shadow-bento-accent/10"
-                        : "bg-bento-card border border-white/5 text-gray-200 p-4 rounded-2xl rounded-bl-sm max-w-[85%] shadow-lg"
+                        : "bg-bento-card border border-gray-200 text-gray-900 p-4 rounded-2xl rounded-bl-sm max-w-[85%] shadow-lg"
                       }
                     >
                       {isUser ? (
                         <span>{msg.parts[0].text}</span>
                       ) : (
                         <div
-                          className="prose prose-invert prose-sm max-w-none"
+                          className="prose prose-sm max-w-none text-gray-900"
                           dangerouslySetInnerHTML={{ __html: msg.parts[0].text }}
                         />
                       )}
