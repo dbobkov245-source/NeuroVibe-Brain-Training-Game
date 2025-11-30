@@ -12,7 +12,7 @@ import { useDailyQuest } from './hooks/useDailyQuest';
 import { Confetti } from './components/Confetti';
 
 // New Components
-import { ArrowLeft, MessageSquare, BookOpenText, Loader2, Send, Users } from 'lucide-react';
+import { ArrowLeft, MessageSquare, BookOpenText, Loader2, Send, Users, Eye } from 'lucide-react';
 import { Layout } from './components/Layout';
 import { DashboardHeader } from './components/DashboardHeader';
 import { RoleSelector } from './components/RoleSelector';
@@ -252,7 +252,8 @@ export default function App() {
     const prompts: Record<GameMode, string> = {
       words: 'Начни режим слов: запомни 7 слов и потом воспроизведи их.',
       story: 'Начни режим истории: дай короткую историю для понимания и вопросов.',
-      associations: 'Начни режим ассоциаций: дай набор ассоциаций для теста.'
+      associations: 'Начни режим ассоциаций: дай набор ассоциаций для теста.',
+      details: 'Начни режим детали: опиши сцену с деталями для запоминания.'
     };
 
     sendMessage(prompts[mode], true);
@@ -265,7 +266,7 @@ export default function App() {
     const mode = urlParams.get('mode') as GameMode;
     const sharedText = urlParams.get('text');
 
-    if (mode && ['words', 'story', 'associations'].includes(mode)) {
+    if (mode && ['words', 'story', 'associations', 'details'].includes(mode)) {
       handleModeSelect(mode);
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (sharedText) {
@@ -372,6 +373,15 @@ export default function App() {
                 onClick={() => handleModeSelect('associations')}
                 colorClass="text-blue-500"
                 delay={2}
+              />
+
+              <ModuleCard
+                title="Детали"
+                description="Внимание к деталям"
+                icon={<Eye className="w-6 h-6" />}
+                onClick={() => handleModeSelect('details')}
+                colorClass="text-emerald-500"
+                delay={3}
               />
             </div>
           </div>

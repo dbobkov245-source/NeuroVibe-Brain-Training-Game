@@ -10,7 +10,7 @@ export interface ChatMessage {
 }
 
 // ========== Режимы игры ==========
-export const GAME_MODES = ['words', 'story', 'associations'] as const;
+export const GAME_MODES = ['words', 'story', 'associations', 'details'] as const;
 export type GameMode = typeof GAME_MODES[number];
 
 // ========== Персоны ==========
