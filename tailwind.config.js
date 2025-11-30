@@ -8,13 +8,13 @@ export default {
     extend: {
       colors: {
         bento: {
-          bg: '#0f0f13', // Very dark, almost black purple/gray
-          card: '#18181b', // Slightly lighter for cards
-          inner: '#202025', // Inner card elements
+          bg: '#f3f4f6', // Gray-100
+          card: '#ffffff', // White
+          inner: '#f9fafb', // Gray-50
           accent: '#8b5cf6', // Violet accent
-          text: '#e4e4e7', // Light gray text
-          muted: '#a1a1aa', // Muted text
-          border: '#27272a', // Subtle borders
+          text: '#111827', // Gray-900
+          muted: '#6b7280', // Gray-500
+          border: '#e5e7eb', // Gray-200
         }
       },
       animation: {

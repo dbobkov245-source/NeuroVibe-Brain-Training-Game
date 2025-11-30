@@ -12,11 +12,10 @@ import { useDailyQuest } from './hooks/useDailyQuest';
 import { Confetti } from './components/Confetti';
 
 // New Components
-import { BrainCircuit, Trophy, ArrowLeft, MessageSquare, BookOpenText, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, MessageSquare, BookOpenText, Loader2, Send, Users } from 'lucide-react';
 import { Layout } from './components/Layout';
-import { BentoCard } from './components/BentoGrid';
 import { DashboardHeader } from './components/DashboardHeader';
-import { CharacterCard } from './components/CharacterCard';
+import { RoleSelector } from './components/RoleSelector';
 import { ModuleCard } from './components/ModuleCard';
 
 export default function App() {
@@ -329,65 +328,50 @@ export default function App() {
         {/* Dashboard View */}
         {!isGameActive && (
           <div className="space-y-6 animate-fade-in-up">
-            {/* Top Row: 3 Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              <BentoCard
-                className="aspect-square flex flex-col items-center justify-center text-center p-4"
-                onClick={() => handleModeSelect('associations')}
-              >
-                <div className="mb-3 p-3 rounded-full bg-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                  <BrainCircuit className="w-8 h-8 text-violet-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-300">Ассоциации</span>
-              </BentoCard>
 
-              <CharacterCard currentPersona={persona} onChange={setPersona} />
-
-              <BentoCard
-                className="aspect-square flex flex-col items-center justify-center text-center p-4"
-                onClick={() => setShowAchievementsPanel(true)}
-              >
-                <div className="mb-3 p-3 rounded-full bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                  <Trophy className="w-8 h-8 text-emerald-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-300">Прогресс</span>
-              </BentoCard>
-            </div>
+            {/* Role Selector */}
+            <RoleSelector currentPersona={persona} onChange={setPersona} />
 
             {/* Middle Row: Banner */}
             <div
-              onClick={() => handleModeSelect('words')}
-              className="relative overflow-hidden rounded-2xl glass-card glass-card-gold p-6 cursor-pointer group"
+              className="relative overflow-hidden rounded-2xl bg-yellow-50 border border-yellow-100 p-6 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-[#c2b280] mb-1">Новые модули доступны</h3>
-                  <p className="text-sm text-[#c2b280]/70">Расширь свои когнитивные горизонты.</p>
-                </div>
-                <div className="p-2 rounded-full bg-[#c2b280]/10 group-hover:bg-[#c2b280]/20 transition-colors shadow-[0_0_10px_rgba(194,178,128,0.2)]">
-                  <ArrowLeft className="w-5 h-5 text-[#c2b280] rotate-180 icon-glow-gold" />
+                  <h3 className="text-lg font-bold text-yellow-800 mb-1 flex items-center gap-2">
+                    <span className="text-2xl">🎯</span> Мастер слов: Правильно вспомни все 7 слов
+                  </h3>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Row: 2 Large Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Bottom Row: Game Cards */}
+            <div className="grid grid-cols-2 gap-4">
               <ModuleCard
-                title="Слова и Фразы"
+                title="Слова"
                 description="Запомни 7 слов"
                 icon={<MessageSquare className="w-6 h-6" />}
                 onClick={() => handleModeSelect('words')}
-                colorClass="text-blue-400"
+                colorClass="text-violet-500"
                 delay={0}
               />
 
               <ModuleCard
-                title="История и Сюжет"
-                description="Пойми контекст"
+                title="История"
+                description="Понимание истории"
                 icon={<BookOpenText className="w-6 h-6" />}
                 onClick={() => handleModeSelect('story')}
-                colorClass="text-pink-400"
+                colorClass="text-pink-500"
                 delay={1}
+              />
+
+              <ModuleCard
+                title="Ассоциации"
+                description="Тренировка ассоциаций"
+                icon={<Users className="w-6 h-6" />}
+                onClick={() => handleModeSelect('associations')}
+                colorClass="text-blue-500"
+                delay={2}
               />
             </div>
           </div>

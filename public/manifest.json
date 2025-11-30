@@ -2,7 +2,7 @@
   "name": "NeuroVibe: Brain Training Game",
   "short_name": "NeuroVibe",
   "description": "Интерактивная игра для тренировки памяти и когнитивных навыков через игры со словами, историями и ассоциациями",
-  "theme_color": "#6d28d9",
+  "theme_color": "#ffffff",
   "background_color": "#f9fafb",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -10,19 +10,23 @@
   "scope": "/",
   "id": "/",
   "lang": "ru",
-  "categories": ["games", "education", "health"],
+  "categories": [
+    "games",
+    "education",
+    "health"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/apple-touch-icon.png",
@@ -59,21 +63,36 @@
       "short_name": "Слова",
       "description": "Начать новую игру на запоминание слов",
       "url": "/?mode=words",
-      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
     },
     {
       "name": "Начать игру 'История'",
       "short_name": "История",
       "description": "Начать новую игру на понимание истории",
       "url": "/?mode=story",
-      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
     },
     {
       "name": "Начать игру 'Ассоциации'",
       "short_name": "Ассоциации",
       "description": "Начать новую игру на ассоциативное мышление",
       "url": "/?mode=associations",
-      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
     }
   ],
   "share_target": {
