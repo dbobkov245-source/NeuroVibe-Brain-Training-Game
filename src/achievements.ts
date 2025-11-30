@@ -76,7 +76,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'DETAILS_DETECTIVE',
     name: 'Шерлок Холмс',
     description: 'Успешно пройдите игру в режиме "Детали".',
-    icon: BookOpenText, // Using BookOpenText as a placeholder or maybe Eye if I can import it
+    icon: Eye,
     check: ({ lastModelResponse, currentGameMode }) => {
       if (!lastModelResponse || currentGameMode !== 'details') return false;
       return lastModelResponse.xp_gained > 0;
