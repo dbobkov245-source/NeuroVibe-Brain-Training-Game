@@ -464,11 +464,11 @@ export default function App() {
                 />
 
                 {/* Next Button */}
-                {!isLoading && !memoryContent && (
+                {!isLoading && !memoryContent && !input.trim() && (
                   <button
                     type="button"
                     onClick={() => sendMessage("Дальше", false)}
-                    className="p-3 bg-violet-100 text-violet-600 rounded-xl hover:bg-violet-200 hover:text-violet-900 transition-all font-medium"
+                    className="p-3 bg-violet-100 text-violet-600 rounded-xl hover:bg-violet-200 hover:text-violet-900 transition-all font-medium flex-shrink-0"
                     title="Следующий вопрос"
                   >
                     Дальше
@@ -476,7 +476,7 @@ export default function App() {
                 )}
 
                 {/* Continue Button */}
-                {!isLoading && !memoryContent && (
+                {!isLoading && !memoryContent && !input.trim() && (
                   <button
                     type="button"
                     onClick={() => {
@@ -490,7 +490,7 @@ export default function App() {
                         sendMessage(prompts[currentMode], true);
                       }
                     }}
-                    className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 hover:text-gray-900 transition-all"
+                    className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 hover:text-gray-900 transition-all flex-shrink-0"
                     title="Продолжить игру"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -505,7 +505,7 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim() || !isOnline || !!memoryContent}
-                  className="p-3 bg-bento-accent text-white rounded-xl shadow-lg shadow-bento-accent/20 hover:bg-violet-500 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100"
+                  className="p-3 bg-bento-accent text-white rounded-xl shadow-lg shadow-bento-accent/20 hover:bg-violet-500 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0"
                 >
                   {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
                 </button>
