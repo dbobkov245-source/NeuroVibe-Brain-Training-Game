@@ -404,7 +404,17 @@ export default function App() {
               ref={chatContainerRef}
               className="flex-grow overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             >
-              {memoryContent && <MemoryCard content={memoryContent} onReady={() => setMemoryContent(null)} />}
+              {memoryContent && (
+                <MemoryCard
+                  content={memoryContent}
+                  onReady={() => {
+                    setMemoryContent(null);
+                    if (currentMode === 'story' || currentMode === 'details') {
+                      sendMessage("Контент запомнен. Задай вопрос.", true);
+                    }
+                  }}
+                />
+              )}
 
               {chatHistory.map((msg, index) => {
                 if (msg.isHidden) return null;
