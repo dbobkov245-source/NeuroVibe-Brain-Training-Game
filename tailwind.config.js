@@ -12,8 +12,8 @@ export default {
           card: '#ffffff', // White
           inner: '#f9fafb', // Gray-50
           accent: '#8b5cf6', // Violet accent
-          text: '#111827', // Gray-900
-          muted: '#6b7280', // Gray-500
+          text: '#030712', // Gray-950
+          muted: '#4b5563', // Gray-600
           border: '#e5e7eb', // Gray-200
         }
       },

@@ -48,7 +48,7 @@ export function RoleSelector({ currentPersona, onChange }: RoleSelectorProps) {
                         <div className={`p-3 rounded-full mb-2 ${role.color}`}>
                             {role.icon}
                         </div>
-                        <span className={`text-xs font-bold text-center leading-tight ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
+                        <span className={`text-xs font-bold text-center leading-tight ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
                             {role.name}
                         </span>
                     </button>

@@ -62,12 +62,12 @@ export function BentoCard({
                 {(title || description) && (
                     <div className="mt-4">
                         {title && (
-                            <h3 className="text-lg font-bold text-white group-hover:text-glow transition-all duration-300">
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-violet-600 transition-all duration-300">
                                 {title}
                             </h3>
                         )}
                         {description && (
-                            <p className="text-sm text-bento-muted mt-1 group-hover:text-gray-300 transition-colors">
+                            <p className="text-sm text-gray-600 mt-1 group-hover:text-gray-800 transition-colors">
                                 {description}
                             </p>
                         )}
